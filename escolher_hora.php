@@ -2,59 +2,53 @@
 session_start();
 include("ligacao.php");
 
-if (!isset($_SESSION['user_id'])) {
-    header("Location: login.php");
-    exit;
+if (!isset($_SESSION['user_id'])) { header("Location: login.php"); exit; }
+if (!isset($_SESSION["marcacao_barbeiro_id"])) { header("Location: marcar_corte.php"); exit; }
+if (!isset($_SESSION["marcacao_dia"])) { header("Location: escolher_dia.php"); exit; }
+
+$user_nome = $_SESSION['user_nome'] ?? "Utilizador";
+$barbeiro_id = (int)$_SESSION["marcacao_barbeiro_id"];
+$dia = $_SESSION["marcacao_dia"];
+
+date_default_timezone_set("Europe/Lisbon");
+
+$horarios = [];
+
+$hora = new DateTime("09:00");
+$fim = new DateTime("18:00");
+
+while ($hora < $fim) {
+    $horarios[] = $hora->format("H:i");
+    $hora->modify("+30 minutes");
 }
 
-if (!isset($_SESSION["marcacao_barbeiro_id"])) {
-    header("Location: marcar_corte.php");
-    exit;
-}
-
-$user_nome = $_SESSION["user_nome"];
-$barbeiro_id = $_SESSION["marcacao_barbeiro_id"];
-$dia = $_SESSION["marcacao_dia"] ?? "";
-
-$hoje = date("Y-m-d");
-
-if ($dia < $hoje) {
-    header("Location: escolher_dia.php");
-    exit;
-}
-
-$barbeiro_nome = "Barbeiro";
-
-$stmt = $conn->prepare("SELECT nome FROM barbeiros WHERE id = ?");
-$stmt->bind_param("i", $barbeiro_id);
-$stmt->execute();
-$res = $stmt->get_result();
-
-if ($res->num_rows > 0) {
-    $barbeiro_nome = $res->fetch_assoc()["nome"];
-}
-
-$stmt->close();
-
-$ocupadas = [];
+$horariosOcupados = [];
 
 $stmt = $conn->prepare("
-SELECT TIME_FORMAT(data_hora,'%H:%i') as hora
-FROM marcacoes
-WHERE barbeiro_id = ?
-AND DATE(data_hora) = ?
-AND (estado IS NULL OR estado <> 'cancelado')
+SELECT TIME_FORMAT(data_hora,'%H:%i') as hora 
+FROM marcacoes 
+WHERE barbeiro_id=? AND DATE(data_hora)=? AND estado!='cancelado'
 ");
 
-$stmt->bind_param("is", $barbeiro_id, $dia);
+$stmt->bind_param("is",$barbeiro_id,$dia);
 $stmt->execute();
-$res = $stmt->get_result();
+$res=$stmt->get_result();
 
-while ($row = $res->fetch_assoc()) {
-    $ocupadas[] = $row["hora"];
+while($row=$res->fetch_assoc()){
+    $horariosOcupados[]=$row["hora"];
 }
 
 $stmt->close();
+
+if($_SERVER["REQUEST_METHOD"]==="POST"){
+    $horaEscolhida=$_POST["hora"] ?? "";
+
+    if($horaEscolhida!=""){
+        $_SESSION["marcacao_hora"]=$horaEscolhida;
+        header("Location: conclusao.php");
+        exit;
+    }
+}
 ?>
 <!DOCTYPE html>
 <html lang="pt">
@@ -73,19 +67,6 @@ background:#000;
 color:#fff;
 font-family:'Poppins',sans-serif;
 overflow-x:hidden;
-}
-
-body::before{
-content:"";
-position:fixed;
-inset:0;
-background-image:url('Imagem/Logo.png');
-background-repeat:no-repeat;
-background-position:center 35%;
-background-size:min(80vw,700px);
-opacity:0.10;
-z-index:-1;
-pointer-events:none;
 }
 
 header{
@@ -109,7 +90,7 @@ position:relative;
 }
 
 .logo{
-font-family:'Playfair Display', serif;
+font-family:'Playfair Display',serif;
 letter-spacing:3px;
 font-size:22px;
 position:absolute;
@@ -130,19 +111,6 @@ font-size:14px;
 transition:0.3s;
 }
 
-.nav-links a:hover{
-color:#cfcfcf;
-}
-
-.menu-toggle{
-display:none;
-font-size:26px;
-background:none;
-border:none;
-color:white;
-cursor:pointer;
-}
-
 .container{
 min-height:100vh;
 display:flex;
@@ -152,96 +120,64 @@ padding:120px 20px 60px;
 }
 
 .box{
+width:100%;
+max-width:820px;
 background:rgba(0,0,0,0.85);
 border:1px solid #1a1a1a;
-padding:40px;
-max-width:700px;
-width:100%;
+padding:40px 30px;
 text-align:center;
 }
 
 h2{
 font-family:'Playfair Display',serif;
-margin-bottom:20px;
 font-size:34px;
+margin-bottom:10px;
 }
 
-.info{
-color:#ccc;
-margin-bottom:20px;
-line-height:1.8;
-}
-
-.horas{
+.grid{
 display:grid;
-grid-template-columns:repeat(3,1fr);
+grid-template-columns:repeat(4,1fr);
 gap:10px;
 margin-top:20px;
 }
 
-.horas form{
-margin:0;
-}
-
-.horas button{
-width:100%;
-padding:12px;
-border:none;
-background:#fff;
-color:#000;
-cursor:pointer;
-font-weight:600;
-border-radius:12px;
-transition:0.3s;
-}
-
-.horas button:hover{
-background:#ccc;
-}
-
-.voltar{
-margin-top:20px;
-display:inline-block;
+.hourbtn{
+padding:14px;
+background:#111;
+border:1px solid #222;
 color:#fff;
-text-decoration:none;
-border:1px solid #333;
-padding:12px 18px;
+cursor:pointer;
 border-radius:12px;
 }
 
-.voltar:hover{
+.hourbtn:hover{
 border-color:#555;
 }
 
-@media (max-width:800px){
-.logo{
-position:static;
-transform:none;
-}
-.menu-toggle{
-display:block;
-}
-.nav-links{
-position:absolute;
-top:100%;
-left:0;
-width:100%;
-background:rgba(0,0,0,0.95);
-flex-direction:column;
-align-items:center;
-gap:25px;
-padding:30px 0;
-display:none;
-}
-.nav-links.active{
-display:flex;
-}
+.hourbtn:disabled{
+text-decoration:line-through;
+opacity:0.4;
+cursor:not-allowed;
 }
 
-@media (max-width:600px){
-.horas{
-grid-template-columns:repeat(2,1fr);
+.actions{
+margin-top:20px;
+display:flex;
+gap:10px;
+justify-content:center;
 }
+
+.btn-outline{
+padding:12px 18px;
+border:1px solid #333;
+background:transparent;
+color:#fff;
+cursor:pointer;
+text-decoration:none;
+}
+
+.btn-outline:hover{
+border-color:#555;
 }
 </style>
 </head>
@@ -251,24 +187,15 @@ grid-template-columns:repeat(2,1fr);
 <header>
 <nav class="navbar">
 
-<button class="menu-toggle" id="menuToggle">☰</button>
-
-<div class="nav-links" id="navLinks">
+<div class="nav-links">
 <a href="index.php">Início</a>
 <a href="marcar_corte.php">Marcar Corte</a>
 <a href="minhas_marcacoes.php">Minhas Marcações</a>
-<a href="loja.html">Loja</a>
 </div>
 
 <div class="logo">LIGHT'S BARBER</div>
 
 <div class="nav-links">
-<a href="about.php">About Us</a>
-
-<?php if (isset($_SESSION['user_tipo']) && $_SESSION['user_tipo'] === 'barbeiro'): ?>
-<a href="dashboard_barbeiro.php">Dashboard</a>
-<?php endif; ?>
-
 <span>Olá, <?php echo htmlspecialchars($user_nome); ?></span>
 <a href="logout.php">Encerrar Sessão</a>
 </div>
@@ -276,53 +203,45 @@ grid-template-columns:repeat(2,1fr);
 </nav>
 </header>
 
-<div class="container">
+<section class="container">
 <div class="box">
 
 <h2>3/4 — Escolher Hora</h2>
 
-<div class="info">
-Barbeiro: <strong><?php echo htmlspecialchars($barbeiro_nome); ?></strong><br>
-Dia: <strong><?php echo htmlspecialchars($dia); ?></strong>
-</div>
+<form method="POST">
 
-<div class="horas">
-<?php
-$horaAtual = date("H:i");
+<div class="grid">
 
-for ($h = 9; $h < 18; $h++) {
-    foreach ([0,30] as $m) {
-        $hora = sprintf("%02d:%02d", $h, $m);
+<?php foreach($horarios as $h):
 
-        if ($dia == $hoje && $hora <= $horaAtual) {
-            continue;
-        }
+$ocupado = in_array($h,$horariosOcupados);
 
-        if (in_array($hora, $ocupadas)) {
-            continue;
-        }
-
-        echo '<form method="POST" action="conclusao.php">
-        <input type="hidden" name="hora" value="'.$hora.'">
-        <button>'.$hora.'</button>
-        </form>';
-    }
-}
 ?>
+
+<button
+class="hourbtn"
+type="<?php echo $ocupado ? 'button' : 'submit'; ?>"
+name="hora"
+value="<?php echo $h; ?>"
+<?php echo $ocupado ? 'disabled' : ''; ?>
+>
+
+<?php echo $h; ?>
+
+</button>
+
+<?php endforeach; ?>
+
 </div>
 
-<a class="voltar" href="escolher_dia.php">Voltar</a>
+<div class="actions">
+<a class="btn-outline" href="escolher_dia.php">Voltar</a>
+</div>
+
+</form>
 
 </div>
-</div>
-
-<script>
-const toggle=document.getElementById("menuToggle");
-const nav=document.getElementById("navLinks");
-toggle.addEventListener("click",()=>{
-nav.classList.toggle("active");
-});
-</script>
+</section>
 
 </body>
 </html>

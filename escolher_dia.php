@@ -19,6 +19,9 @@ $stmt->close();
 date_default_timezone_set("Europe/Lisbon");
 
 $hoje = new DateTime("today");
+$horaAtual = date("H:i");
+$horaFecho = "18:00";
+
 $ano = (int)$hoje->format("Y");
 $mes = (int)$hoje->format("m");
 
@@ -35,7 +38,13 @@ $ultimoDiaMes = new DateTime($primeiroDiaMes->format("Y-m-t"));
 $dias = [];
 
 for ($d = clone $primeiroDiaMes; $d <= $ultimoDiaMes; $d->modify("+1 day")) {
+
     if ($d < $hoje) continue;
+
+    // esconder hoje se já passou das 18h
+    if ($d->format("Y-m-d") == $hoje->format("Y-m-d") && $horaAtual >= $horaFecho) {
+        continue;
+    }
 
     $diaSemanaNum = (int)$d->format("w");
 
@@ -79,6 +88,7 @@ if ($_SERVER["REQUEST_METHOD"]==="POST"){
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Escolher Dia - Light's Barber</title>
 <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;700&family=Poppins:wght@300;400;600&display=swap" rel="stylesheet">
+
 <style>
 *{margin:0;padding:0;box-sizing:border-box;}
 body{
@@ -222,29 +232,6 @@ text-decoration:none;
 .btn-outline:hover{
 border-color:#555;
 }
-@media(max-width:820px){
-.grid{grid-template-columns:repeat(5,1fr);}
-}
-@media(max-width:520px){
-.grid{grid-template-columns:repeat(4,1fr);}
-}
-@media(max-width:800px){
-.logo{position:static;transform:none;}
-.menu-toggle{display:block;}
-.nav-links{
-position:absolute;
-top:100%;
-left:0;
-width:100%;
-background:rgba(0,0,0,0.95);
-flex-direction:column;
-align-items:center;
-gap:25px;
-padding:30px 0;
-display:none;
-}
-.nav-links.active{display:flex;}
-}
 </style>
 </head>
 
@@ -293,12 +280,38 @@ echo "<div class='erro'>$erro</div>";
 
 <form method="POST">
 <div class="grid">
-<?php foreach($dias as $d): ?>
-<button class="daybtn" type="submit" name="dia" value="<?php echo htmlspecialchars($d["date"]); ?>">
+
+<?php foreach($dias as $d):
+
+$diaData = $d["date"];
+
+$stmt = $conn->prepare("SELECT COUNT(*) as total FROM marcacoes WHERE barbeiro_id=? AND DATE(data_hora)=? AND estado!='cancelado'");
+$stmt->bind_param("is",$barbeiro_id,$diaData);
+$stmt->execute();
+$res=$stmt->get_result();
+$row=$res->fetch_assoc();
+$total=$row["total"] ?? 0;
+$stmt->close();
+
+$horariosTotais = 18;
+$bloqueado = $total >= $horariosTotais;
+?>
+
+<button
+class="daybtn"
+type="<?php echo $bloqueado ? 'button' : 'submit'; ?>"
+name="dia"
+value="<?php echo htmlspecialchars($d["date"]); ?>"
+style="<?php echo $bloqueado ? 'text-decoration:line-through;opacity:0.5;cursor:not-allowed;' : ''; ?>"
+>
+
 <div class="dow"><?php echo $nomesSemana[$d["dow"]]; ?></div>
 <div class="num"><?php echo htmlspecialchars($d["day"]); ?></div>
+
 </button>
+
 <?php endforeach; ?>
+
 </div>
 
 <div class="actions">

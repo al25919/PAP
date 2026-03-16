@@ -2,13 +2,12 @@
 session_start();
 include("ligacao.php");
 
-// Proteção de login
+// Proteção login
 if (!isset($_SESSION['user_id'])) {
     header("Location: login.php");
     exit;
 }
 
-// Só barbeiros podem entrar
 if (!isset($_SESSION['user_tipo']) || $_SESSION['user_tipo'] !== 'barbeiro') {
     header("Location: index.php");
     exit;
@@ -18,95 +17,186 @@ $user_nome = $_SESSION['user_nome'] ?? "Barbeiro";
 
 date_default_timezone_set("Europe/Lisbon");
 
-// Atualizar automaticamente marcações passadas
+$diaSelecionado = $_GET['data'] ?? date("Y-m-d");
+
+
+// Atualizar marcações antigas automaticamente
 $agora = date("Y-m-d H:i:s");
 
 $updateSql = "
 UPDATE marcacoes
-SET estado = 'concluido'
-WHERE estado = 'pendente'
+SET estado='concluido'
+WHERE estado='pendente'
 AND data_hora < ?
 ";
 
 $updateStmt = $conn->prepare($updateSql);
-$updateStmt->bind_param("s", $agora);
+$updateStmt->bind_param("s",$agora);
 $updateStmt->execute();
 $updateStmt->close();
 
-// Buscar todas as marcações
-$sql = "
-SELECT 
-    m.id,
-    m.data_hora,
-    m.tipo_corte,
-    m.preco,
-    m.estado,
-    u.nome AS cliente_nome,
-    b.nome AS barbeiro_nome
-FROM marcacoes m
-LEFT JOIN utilizadores u ON m.user_id = u.id
-LEFT JOIN barbeiros b ON m.barbeiro_id = b.id
-ORDER BY 
-    CASE 
-        WHEN m.estado = 'pendente' THEN 1
-        WHEN m.estado = 'concluido' THEN 2
-        WHEN m.estado = 'cancelado' THEN 3
-        ELSE 4
-    END,
-    m.data_hora ASC
+
+// ===== ESTATÍSTICAS DIA =====
+
+$sqlHoje="
+SELECT COUNT(*) as total
+FROM marcacoes
+WHERE DATE(data_hora)='$diaSelecionado'
+AND estado!='cancelado'
 ";
 
-$result = $conn->query($sql);
+$resHoje=$conn->query($sqlHoje);
+$rowHoje=$resHoje->fetch_assoc();
+$marcacoesHoje=$rowHoje['total']??0;
 
-$marcacoes = [];
-if ($result) {
-    while ($row = $result->fetch_assoc()) {
-        $marcacoes[] = $row;
-    }
+
+// Receita dia
+$sqlReceita="
+SELECT SUM(preco) as receita
+FROM marcacoes
+WHERE DATE(data_hora)='$diaSelecionado'
+AND estado!='cancelado'
+";
+
+$resReceita=$conn->query($sqlReceita);
+$rowReceita=$resReceita->fetch_assoc();
+$receitaDia=$rowReceita['receita']??0;
+
+
+// ===== SERVIÇOS DO DIA =====
+
+$sqlCorte="
+SELECT COUNT(*) as total
+FROM marcacoes
+WHERE DATE(data_hora)='$diaSelecionado'
+AND estado!='cancelado'
+AND tipo_corte LIKE '%Corte%'
+AND tipo_corte NOT LIKE '%Barba%'
+";
+
+$resCorte=$conn->query($sqlCorte);
+$rowCorte=$resCorte->fetch_assoc();
+$corte=$rowCorte['total']??0;
+
+
+$sqlBarba="
+SELECT COUNT(*) as total
+FROM marcacoes
+WHERE DATE(data_hora)='$diaSelecionado'
+AND estado!='cancelado'
+AND tipo_corte LIKE '%Barba%'
+AND tipo_corte NOT LIKE '%Corte%'
+";
+
+$resBarba=$conn->query($sqlBarba);
+$rowBarba=$resBarba->fetch_assoc();
+$barba=$rowBarba['total']??0;
+
+
+$sqlCB="
+SELECT COUNT(*) as total
+FROM marcacoes
+WHERE DATE(data_hora)='$diaSelecionado'
+AND estado!='cancelado'
+AND tipo_corte LIKE '%Corte%'
+AND tipo_corte LIKE '%Barba%'
+";
+
+$resCB=$conn->query($sqlCB);
+$rowCB=$resCB->fetch_assoc();
+$corteBarba=$rowCB['total']??0;
+
+
+// ===== RECEITA SEMANA =====
+
+$sqlSemana="
+SELECT SUM(preco) as receita
+FROM marcacoes
+WHERE YEARWEEK(data_hora,1)=YEARWEEK(CURDATE(),1)
+AND estado!='cancelado'
+";
+
+$resSemana=$conn->query($sqlSemana);
+$rowSemana=$resSemana->fetch_assoc();
+$receitaSemana=$rowSemana['receita']??0;
+
+
+$sqlGrafico="
+SELECT DAYNAME(data_hora) as dia, SUM(preco) as total
+FROM marcacoes
+WHERE YEARWEEK(data_hora,1)=YEARWEEK(CURDATE(),1)
+AND estado!='cancelado'
+GROUP BY DAYNAME(data_hora)
+";
+
+$resGrafico=$conn->query($sqlGrafico);
+
+$dias=[
+"Monday"=>0,
+"Tuesday"=>0,
+"Wednesday"=>0,
+"Thursday"=>0,
+"Friday"=>0,
+"Saturday"=>0
+];
+
+while($row=$resGrafico->fetch_assoc()){
+$dias[$row['dia']]=$row['total'];
 }
+
+
+// ===== AGENDA =====
+
+$sqlAgenda="
+SELECT 
+m.id,
+m.data_hora,
+u.nome,
+m.tipo_corte,
+m.estado
+FROM marcacoes m
+LEFT JOIN utilizadores u ON m.user_id=u.id
+WHERE DATE(m.data_hora)='$diaSelecionado'
+ORDER BY m.data_hora ASC
+";
+
+$resAgenda=$conn->query($sqlAgenda);
+
+$agenda=[];
+while($row=$resAgenda->fetch_assoc()){
+$agenda[]=$row;
+}
+
 ?>
+
 <!DOCTYPE html>
 <html lang="pt">
+
 <head>
+
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Dashboard do Barbeiro - Light's Barber</title>
 
-<link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;700&family=Poppins:wght@300;400;600&display=swap" rel="stylesheet">
+<title>Dashboard do Barbeiro</title>
+
+<link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;600&display=swap" rel="stylesheet">
+
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 
 <style>
-*{
-margin:0;
-padding:0;
-box-sizing:border-box;
-}
 
 body{
 background:#000;
 color:#fff;
 font-family:'Poppins',sans-serif;
-overflow-x:hidden;
-}
-
-body::before{
-content:"";
-position:fixed;
-inset:0;
-background-image:url('Imagem/Logo.png');
-background-repeat:no-repeat;
-background-position:center 35%;
-background-size:min(80vw,700px);
-opacity:0.10;
-z-index:-1;
-pointer-events:none;
+margin:0;
 }
 
 header{
 position:fixed;
 width:100%;
 top:0;
-background:rgba(0,0,0,0.85);
-backdrop-filter:blur(8px);
+background:#000;
 border-bottom:1px solid #1a1a1a;
 z-index:1000;
 }
@@ -116,202 +206,143 @@ max-width:1200px;
 margin:auto;
 padding:16px 25px;
 display:flex;
-align-items:center;
 justify-content:space-between;
-position:relative;
+align-items:center;
 }
 
 .logo{
-font-family:'Playfair Display', serif;
-letter-spacing:3px;
 font-size:22px;
-position:absolute;
-left:50%;
-transform:translateX(-50%);
-white-space:nowrap;
 }
 
 .nav-links{
 display:flex;
 gap:20px;
-align-items:center;
 }
 
 .nav-links a{
+color:white;
 text-decoration:none;
-color:white;
-font-size:14px;
-transition:0.3s;
-}
-
-.nav-links a:hover{
-color:#cfcfcf;
-}
-
-.menu-toggle{
-display:none;
-font-size:26px;
-background:none;
-border:none;
-color:white;
-cursor:pointer;
 }
 
 .container{
-min-height:100vh;
-padding:130px 20px 60px;
+padding:140px 20px;
 max-width:1200px;
 margin:auto;
 }
 
-.page-title{
-text-align:center;
+.filtro-data{
+display:flex;
+justify-content:center;
+gap:10px;
 margin-bottom:30px;
 }
 
-.page-title h1{
-font-family:'Playfair Display', serif;
-font-size:38px;
-margin-bottom:8px;
-}
-
-.page-title p{
-color:#ccc;
-font-size:15px;
-}
-
-.tabela-box{
-background:rgba(0,0,0,0.85);
+.input-data{
+background:#111;
+color:white;
 border:1px solid #1a1a1a;
-border-radius:16px;
-overflow:hidden;
+padding:8px 12px;
+border-radius:8px;
 }
 
-.tabela-scroll{
-overflow-x:auto;
+.btn-ver{
+background:#1a1a1a;
+color:white;
+border:1px solid #333;
+padding:8px 16px;
+border-radius:8px;
+cursor:pointer;
 }
 
-table{
-width:100%;
-border-collapse:collapse;
-min-width:1050px;
+.stats{
+display:flex;
+gap:20px;
+flex-wrap:wrap;
+margin-bottom:40px;
 }
 
-thead{
-background:#0f0f0f;
-}
-
-th, td{
-padding:16px 14px;
-text-align:left;
-border-bottom:1px solid #1a1a1a;
-font-size:14px;
-}
-
-th{
-color:#ddd;
-font-weight:600;
-}
-
-td{
-color:#fff;
-}
-
-tr:hover td{
-background:rgba(255,255,255,0.02);
-}
-
-.estado{
-display:inline-block;
-padding:6px 10px;
-border-radius:999px;
-font-size:12px;
-font-weight:600;
-text-transform:capitalize;
-}
-
-.estado-pendente{
-background:rgba(255,193,7,0.15);
-color:#ffd666;
-border:1px solid rgba(255,193,7,0.30);
-}
-
-.estado-confirmado{
-background:rgba(0,123,255,0.15);
-color:#7db7ff;
-border:1px solid rgba(0,123,255,0.30);
-}
-
-.estado-concluido{
-background:rgba(40,167,69,0.15);
-color:#7dff9b;
-border:1px solid rgba(40,167,69,0.30);
-}
-
-.estado-cancelado{
-background:rgba(220,53,69,0.15);
-color:#ff8a96;
-border:1px solid rgba(220,53,69,0.30);
-}
-
-.sem-marcacoes{
-background:rgba(0,0,0,0.85);
+.stat-card{
+flex:1;
+min-width:180px;
+background:#111;
 border:1px solid #1a1a1a;
-border-radius:16px;
-padding:40px 25px;
+border-radius:14px;
+padding:20px;
 text-align:center;
 }
 
-.sem-marcacoes h2{
-font-family:'Playfair Display', serif;
-font-size:28px;
-margin-bottom:10px;
+.chart-box{
+background:#111;
+border:1px solid #1a1a1a;
+border-radius:14px;
+padding:25px;
+margin-bottom:40px;
 }
 
-.sem-marcacoes p{
-color:#ccc;
+.agenda{
+background:#111;
+border:1px solid #1a1a1a;
+border-radius:14px;
+padding:25px;
 }
 
-@media (max-width:800px){
-
-.logo{
-position:static;
-transform:none;
-}
-
-.menu-toggle{
-display:block;
-}
-
-.nav-links{
-position:absolute;
-top:100%;
-left:0;
+.pesquisa-agenda{
 width:100%;
-background:rgba(0,0,0,0.95);
-flex-direction:column;
-align-items:center;
-gap:25px;
-padding:30px 0;
-display:none;
+background:#111;
+color:white;
+border:1px solid #1a1a1a;
+padding:10px;
+border-radius:8px;
+margin-bottom:15px;
 }
 
-.nav-links.active{
-display:flex;
+.agenda-item{
+padding:10px 0;
+border-bottom:1px solid #222;
 }
 
+.estado{
+font-size:12px;
+margin-left:10px;
+padding:3px 8px;
+border-radius:6px;
 }
+
+.pendente{background:#ffc10733;color:#ffd666;}
+.concluido{background:#28a74533;color:#7dff9b;}
+.cancelado{background:#dc354533;color:#ff8a96;}
+
+.btn-concluir{
+background:#28a745;
+color:white;
+padding:4px 8px;
+border-radius:6px;
+font-size:12px;
+margin-left:10px;
+text-decoration:none;
+}
+
+.btn-cancelar{
+background:#dc3545;
+color:white;
+padding:4px 8px;
+border-radius:6px;
+font-size:12px;
+margin-left:10px;
+text-decoration:none;
+}
+
 </style>
+
 </head>
 
 <body>
 
 <header>
+
 <nav class="navbar">
 
-<button class="menu-toggle" id="menuToggle">☰</button>
-
-<div class="nav-links" id="navLinks">
+<div class="nav-links">
 <a href="dashboard_barbeiro.php">Dashboard</a>
 <a href="index.php">Site</a>
 </div>
@@ -319,81 +350,157 @@ display:flex;
 <div class="logo">LIGHT'S BARBER</div>
 
 <div class="nav-links">
-<span style="font-size:14px;">Barbeiro: <?php echo htmlspecialchars($user_nome); ?></span>
-<a href="logout.php">Encerrar Sessão</a>
+<span><?php echo $user_nome; ?></span>
+<a href="logout.php">Logout</a>
 </div>
 
 </nav>
+
 </header>
+
 
 <section class="container">
 
-<div class="page-title">
-<h1>Dashboard do Barbeiro</h1>
-<p>Aqui podes acompanhar todas as marcações da barbearia.</p>
+
+<form method="GET" class="filtro-data">
+
+<input type="date" name="data" value="<?php echo $diaSelecionado; ?>" class="input-data">
+
+<button type="submit" class="btn-ver">Ver</button>
+
+</form>
+
+
+<div class="stats">
+
+<div class="stat-card">
+<h2><?php echo $marcacoesHoje; ?></h2>
+<p>Marcações Hoje</p>
 </div>
 
-<?php if (count($marcacoes) > 0): ?>
+<div class="stat-card">
+<h2><?php echo $receitaDia; ?>€</h2>
+<p>Receita do Dia</p>
+</div>
 
-<div class="tabela-box">
-<div class="tabela-scroll">
-<table>
-<thead>
-<tr>
-<th>Cliente</th>
-<th>Barbeiro</th>
-<th>Data</th>
-<th>Hora</th>
-<th>Serviço</th>
-<th>Preço</th>
-<th>Estado</th>
-</tr>
-</thead>
-<tbody>
+<div class="stat-card">
+<h2><?php echo $receitaSemana; ?>€</h2>
+<p>Receita da Semana</p>
+</div>
 
-<?php foreach($marcacoes as $m): ?>
-<tr>
-<td><?php echo htmlspecialchars($m['cliente_nome'] ?? 'Não definido'); ?></td>
-<td><?php echo htmlspecialchars($m['barbeiro_nome'] ?? 'Não definido'); ?></td>
-<td><?php echo date("d/m/Y", strtotime($m['data_hora'])); ?></td>
-<td><?php echo date("H:i", strtotime($m['data_hora'])); ?></td>
-<td><?php echo htmlspecialchars($m['tipo_corte']); ?></td>
-<td><?php echo htmlspecialchars($m['preco']); ?></td>
-<td>
-<?php
-$estado = $m['estado'] ?? 'pendente';
-$classeEstado = "estado-" . strtolower($estado);
-?>
-<span class="estado <?php echo $classeEstado; ?>">
-<?php echo htmlspecialchars($estado); ?>
+</div>
+
+
+<div class="chart-box">
+<h3>Serviços do Dia</h3>
+<canvas id="graficoServicos"></canvas>
+</div>
+
+
+<div class="chart-box">
+<h3>Receita da Semana</h3>
+<canvas id="graficoSemana"></canvas>
+</div>
+
+
+<div class="agenda">
+
+<h2>Agenda do Dia</h2>
+
+<input type="text" id="pesquisaCliente" placeholder="Pesquisar cliente..." class="pesquisa-agenda">
+
+<?php foreach($agenda as $a): ?>
+
+<div class="agenda-item" data-cliente="<?php echo strtolower($a['nome']); ?>">
+
+<strong><?php echo date("H:i",strtotime($a['data_hora'])); ?></strong>
+
+- <?php echo htmlspecialchars($a['nome']); ?>
+
+(<?php echo $a['tipo_corte']; ?>)
+
+<span class="estado <?php echo $a['estado']; ?>">
+<?php echo $a['estado']; ?>
 </span>
-</td>
-</tr>
-<?php endforeach; ?>
 
-</tbody>
-</table>
-</div>
-</div>
+<?php if($a['estado']=="pendente"): ?>
 
-<?php else: ?>
+<a class="btn-concluir" href="concluir_marcacao.php?id=<?php echo $a['id']; ?>">Concluir</a>
 
-<div class="sem-marcacoes">
-<h2>Ainda não existem marcações</h2>
-<p>Quando houver marcações, vão aparecer aqui.</p>
-</div>
+<a class="btn-cancelar" href="cancelar_marcacao.php?id=<?php echo $a['id']; ?>">Cancelar</a>
 
 <?php endif; ?>
 
+</div>
+
+<?php endforeach; ?>
+
+</div>
+
+
 </section>
 
-<script>
-const toggle = document.getElementById("menuToggle");
-const nav = document.getElementById("navLinks");
 
-toggle.addEventListener("click", () => {
-  nav.classList.toggle("active");
+<script>
+
+new Chart(document.getElementById('graficoServicos'),{
+type:'bar',
+data:{
+labels:['Corte','Barba','Corte + Barba'],
+datasets:[{
+label:'Serviços',
+data:[
+<?php echo $corte;?>,
+<?php echo $barba;?>,
+<?php echo $corteBarba;?>
+],
+backgroundColor:['#4e79a7','#59a14f','#f28e2b']
+}]
+}
 });
+
+
+new Chart(document.getElementById('graficoSemana'),{
+type:'bar',
+data:{
+labels:['Seg','Ter','Qua','Qui','Sex','Sab'],
+datasets:[{
+label:'Receita (€)',
+data:[
+<?php echo $dias['Monday']; ?>,
+<?php echo $dias['Tuesday']; ?>,
+<?php echo $dias['Wednesday']; ?>,
+<?php echo $dias['Thursday']; ?>,
+<?php echo $dias['Friday']; ?>,
+<?php echo $dias['Saturday']; ?>
+],
+backgroundColor:'#59a14f'
+}]
+}
+});
+
+
+const input=document.getElementById("pesquisaCliente");
+const agendaItems=document.querySelectorAll(".agenda-item");
+
+input.addEventListener("keyup",function(){
+
+let pesquisa=input.value.toLowerCase();
+
+agendaItems.forEach(function(item){
+
+let cliente=item.getAttribute("data-cliente");
+
+if(cliente.includes(pesquisa)){
+item.style.display="block";
+}else{
+item.style.display="none";
+}
+
+});
+
+});
+
 </script>
 
 </body>

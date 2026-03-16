@@ -1,147 +1,251 @@
 <?php
 session_start();
+$user_nome = $_SESSION['user_nome'] ?? "";
 ?>
-
 <!DOCTYPE html>
 <html lang="pt">
 <head>
+
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
 <title>Light's Barber</title>
 
 <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;700&family=Poppins:wght@300;400;600&display=swap" rel="stylesheet">
 
 <style>
-* { margin:0; padding:0; box-sizing:border-box; }
 
-body {
-  background-color:#000;
-  color:#fff;
-  font-family:'Poppins', sans-serif;
-  overflow-x:hidden;
+*{
+margin:0;
+padding:0;
+box-sizing:border-box;
 }
 
-body::before {
-  content:"";
-  position:fixed;
-  inset:0;
-  background-image:url('Imagem/Logo.png');
-  background-repeat:no-repeat;
-  background-position:center 35%;
-  background-size:min(80vw,700px);
-  opacity:0.10;
-  z-index:-1;
-  pointer-events:none;
+body{
+background:#000;
+color:#fff;
+font-family:'Poppins',sans-serif;
+overflow-x:hidden;
 }
 
-header {
-  position:fixed;
-  width:100%;
-  top:0;
-  background:rgba(0,0,0,0.85);
-  backdrop-filter:blur(8px);
-  border-bottom:1px solid #1a1a1a;
-  z-index:1000;
+/* LOGO NO FUNDO */
+
+body::before{
+content:"";
+position:fixed;
+inset:0;
+background-image:url('Imagem/Logo.png');
+background-repeat:no-repeat;
+background-position:center 35%;
+background-size:min(80vw,700px);
+opacity:0.10;
+z-index:-1;
+pointer-events:none;
 }
 
-.navbar {
-  max-width:1200px;
-  margin:auto;
-  padding:16px 25px;
-  display:flex;
-  align-items:center;
-  justify-content:space-between;
-  position:relative;
+header{
+position:fixed;
+width:100%;
+top:0;
+background:rgba(0,0,0,0.85);
+backdrop-filter:blur(8px);
+border-bottom:1px solid #1a1a1a;
+z-index:1000;
 }
 
-.logo {
-  font-family:'Playfair Display', serif;
-  letter-spacing:3px;
-  font-size:22px;
-  position:absolute;
-  left:50%;
-  transform:translateX(-50%);
-  white-space:nowrap;
+.navbar{
+max-width:1200px;
+margin:auto;
+padding:16px 25px;
+display:flex;
+align-items:center;
+justify-content:space-between;
 }
 
-.nav-links {
-  display:flex;
-  gap:20px;
-  align-items:center;
+.logo{
+font-family:'Playfair Display',serif;
+letter-spacing:3px;
+font-size:22px;
 }
 
-.nav-links a {
-  text-decoration:none;
-  color:white;
-  font-size:14px;
-  transition:0.3s;
+.nav-links{
+display:flex;
+gap:20px;
+align-items:center;
 }
 
-.nav-links a:hover { color:#cfcfcf; }
-
-.menu-toggle {
-  display:none;
-  font-size:26px;
-  background:none;
-  border:none;
-  color:white;
-  cursor:pointer;
+.nav-links a{
+text-decoration:none;
+color:white;
+font-size:14px;
+transition:0.3s;
 }
 
-.header-msg {
-  width:100%;
-  text-align:center;
-  padding:8px 0;
-  font-size:13px;
-  background:rgba(255,255,255,0.05);
-  border-top:1px solid rgba(255,255,255,0.1);
-  animation:fadeDown 0.4s ease;
+.nav-links a:hover{
+color:#ccc;
 }
 
-@keyframes fadeDown {
-  from { opacity:0; transform:translateY(-5px); }
-  to { opacity:1; transform:translateY(0); }
+.hero{
+height:100vh;
+display:flex;
+flex-direction:column;
+justify-content:center;
+align-items:center;
+text-align:center;
+padding:0 20px;
 }
 
-.hero {
-  min-height:100vh;
-  display:flex;
-  align-items:center;
-  justify-content:center;
-  text-align:center;
-  padding:160px 20px 60px;
+.hero h1{
+font-family:'Playfair Display',serif;
+font-size:52px;
+margin-bottom:15px;
 }
 
-.hero h1 {
-  font-family:'Playfair Display', serif;
-  font-size:clamp(32px,5vw,56px);
-  margin-bottom:15px;
+.hero p{
+color:#ccc;
+max-width:600px;
 }
 
-.hero p {
-  font-size:clamp(14px,2.5vw,18px);
-  color:#ccc;
-  max-width:600px;
-  margin:auto;
+.hero-buttons{
+margin-top:30px;
+display:flex;
+gap:15px;
+flex-wrap:wrap;
+justify-content:center;
 }
 
-@media (max-width:800px){
-  .logo { position:static; transform:none; }
-  .menu-toggle { display:block; }
-  .nav-links {
-    position:absolute;
-    top:100%;
-    left:0;
-    width:100%;
-    background:rgba(0,0,0,0.95);
-    flex-direction:column;
-    align-items:center;
-    gap:25px;
-    padding:30px 0;
-    display:none;
-  }
-  .nav-links.active { display:flex; }
+.btn-primary{
+background:#fff;
+color:#000;
+padding:12px 26px;
+text-decoration:none;
+font-weight:600;
+border-radius:3px;
+transition:0.3s;
 }
+
+.btn-primary:hover{
+background:#ddd;
+}
+
+.btn-outline{
+border:1px solid #fff;
+color:#fff;
+padding:12px 26px;
+text-decoration:none;
+border-radius:3px;
+transition:0.3s;
+}
+
+.btn-outline:hover{
+background:#fff;
+color:#000;
+}
+
+.section{
+padding:100px 20px;
+max-width:1100px;
+margin:auto;
+text-align:center;
+}
+
+.section h2{
+font-family:'Playfair Display',serif;
+font-size:38px;
+margin-bottom:20px;
+}
+
+.section p{
+color:#ccc;
+max-width:700px;
+margin:auto;
+line-height:1.6;
+}
+
+/* SERVIÇOS */
+
+.features{
+margin-top:40px;
+display:grid;
+grid-template-columns:repeat(3,1fr);
+gap:25px;
+}
+
+.feature{
+background:#0f0f0f;
+padding:30px;
+border:1px solid #1a1a1a;
+border-radius:10px;
+transition:all 0.35s ease;
+cursor:pointer;
+position:relative;
+overflow:hidden;
+}
+
+/* LINHA PREMIUM */
+
+.feature::before{
+content:"";
+position:absolute;
+top:0;
+left:0;
+width:0%;
+height:3px;
+background:#cfa64b;
+transition:0.4s;
+}
+
+.feature:hover::before{
+width:100%;
+}
+
+/* ANIMAÇÃO */
+
+.feature:hover{
+transform:translateY(-12px) scale(1.04);
+border-color:#444;
+box-shadow:0 20px 45px rgba(0,0,0,0.7);
+}
+
+.feature-icon{
+font-size:40px;
+margin-bottom:12px;
+transition:0.3s;
+}
+
+.feature:hover .feature-icon{
+transform:scale(1.25) rotate(-5deg);
+}
+
+.feature h3{
+margin-bottom:10px;
+transition:0.3s;
+}
+
+.feature:hover h3{
+color:#fff;
+}
+
+footer{
+border-top:1px solid #1a1a1a;
+padding:30px;
+text-align:center;
+color:#888;
+margin-top:80px;
+}
+
+@media(max-width:800px){
+
+.features{
+grid-template-columns:1fr;
+}
+
+.hero h1{
+font-size:38px;
+}
+
+}
+
 </style>
 </head>
 
@@ -149,82 +253,100 @@ header {
 
 <header>
 
-  <nav class="navbar">
-    <button class="menu-toggle" id="menuToggle">☰</button>
+<nav class="navbar">
 
-    <div class="nav-links" id="navLinks">
-      <a href="index.php">Início</a>
-      <a href="marcar_corte.php">Marcar Corte</a>
-      <a href="minhas_marcacoes.php">Minhas Marcações</a>
-      <a href="loja.html">Loja</a>
-    </div>
+<div class="logo">LIGHT'S BARBER</div>
 
-    <div class="logo">LIGHT'S BARBER</div>
+<div class="nav-links">
 
-    <div class="nav-links">
-      <a href="about.php">About Us</a>
+<a href="index.php">Início</a>
+<a href="marcar_corte.php">Marcar Corte</a>
+<a href="minhas_marcacoes.php">Minhas Marcações</a>
+<a href="about.php">About</a>
 
-      <?php if (isset($_SESSION['user_id'])): ?>
+<?php if($user_nome!=""): ?>
 
-        <?php if (isset($_SESSION['user_tipo']) && $_SESSION['user_tipo'] === 'barbeiro'): ?>
-          <a href="dashboard_barbeiro.php">Dashboard</a>
-        <?php endif; ?>
+<span>Olá, <?php echo htmlspecialchars($user_nome); ?></span>
+<a href="logout.php">Logout</a>
 
-        <span style="font-size:14px;">
-          Olá, <?php echo htmlspecialchars($_SESSION['user_nome']); ?>
-        </span>
+<?php else: ?>
 
-        <a href="logout.php">Encerrar Sessão</a>
+<a href="login.php">Login</a>
 
-      <?php else: ?>
+<?php endif; ?>
 
-        <a href="login.php">Login</a>
+</div>
 
-      <?php endif; ?>
-    </div>
-  </nav>
-
-  <?php if (isset($_GET['logout']) && $_GET['logout'] == 'success'): ?>
-    <div class="header-msg" id="logoutMsg">
-      Sessão encerrada com sucesso.
-    </div>
-  <?php endif; ?>
-
-  <?php if (isset($_GET['login']) && $_GET['login'] == 'success'): ?>
-    <div class="header-msg" id="loginMsg">
-      Login efetuado com sucesso. Bem-vindo(a), <?php echo htmlspecialchars($_SESSION['user_nome']); ?>!
-    </div>
-  <?php endif; ?>
+</nav>
 
 </header>
 
 <section class="hero">
-  <div>
-    <h1>Estilo Clássico. Corte Moderno.</h1>
-    <p>Um visual elegante, profissional e totalmente responsivo para a PAP.</p>
-  </div>
+
+<h1>Estilo Clássico. Corte Moderno.</h1>
+
+<p>
+Na Light's Barber combinamos tradição e estilo moderno para criar cortes que refletem personalidade e confiança.
+</p>
+
+<div class="hero-buttons">
+
+<a href="marcar_corte.php" class="btn-primary">
+Marcar Corte
+</a>
+
+<a href="#sobre" class="btn-outline">
+Conhecer Barbearia
+</a>
+
+</div>
+
 </section>
 
-<script>
-const toggle = document.getElementById("menuToggle");
-const nav = document.getElementById("navLinks");
-toggle.addEventListener("click", () => {
-  nav.classList.toggle("active");
-});
+<section class="section" id="sobre">
 
-setTimeout(() => {
-  const logoutMsg = document.getElementById("logoutMsg");
-  if (logoutMsg) {
-    logoutMsg.style.opacity = "0";
-    setTimeout(() => logoutMsg.remove(), 400);
-  }
-  const loginMsg = document.getElementById("loginMsg");
-  if (loginMsg) {
-    loginMsg.style.opacity = "0";
-    setTimeout(() => loginMsg.remove(), 400);
-  }
-}, 4000);
-</script>
+<h2>Tradição e Estilo em Cada Corte</h2>
+
+<p>
+Na Light's Barber acreditamos que um corte de cabelo é mais do que estética — é identidade.  
+Combinamos técnicas clássicas de barbearia com estilos modernos para garantir que cada cliente saia com confiança e personalidade.
+</p>
+
+<div class="features">
+
+<div class="feature">
+
+<div class="feature-icon">✂️</div>
+<h3>Cortes Profissionais</h3>
+<p>Cortes modernos e clássicos adaptados ao teu estilo.</p>
+
+</div>
+
+<div class="feature">
+
+<div class="feature-icon">🧔</div>
+<h3>Cuidados com a Barba</h3>
+<p>Modelagem e manutenção profissional da barba.</p>
+
+</div>
+
+<div class="feature">
+
+<div class="feature-icon">⭐</div>
+<h3>Experiência Premium</h3>
+<p>Ambiente confortável e atendimento de qualidade.</p>
+
+</div>
+
+</div>
+
+</section>
+
+<footer>
+
+© <?php echo date("Y"); ?> Light's Barber
+
+</footer>
 
 </body>
 </html>
