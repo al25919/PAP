@@ -18,31 +18,17 @@ $stmt->close();
 
 date_default_timezone_set("Europe/Lisbon");
 
-$hoje = new DateTime("today");
-$horaAtual = date("H:i");
-$horaFecho = "18:00";
-
-$ano = (int)$hoje->format("Y");
-$mes = (int)$hoje->format("m");
-
-$meses = [
-1=>"Janeiro","Fevereiro","Março","Abril","Maio","Junho",
-"Julho","Agosto","Setembro","Outubro","Novembro","Dezembro"
-];
-
-$mesNome = $meses[(int)$hoje->format("n")];
-
-$primeiroDiaMes = new DateTime(sprintf("%04d-%02d-01", $ano, $mes));
-$ultimoDiaMes = new DateTime($primeiroDiaMes->format("Y-m-t"));
+/* NOVO SISTEMA DE DIAS */
 
 $dias = [];
 
-for ($d = clone $primeiroDiaMes; $d <= $ultimoDiaMes; $d->modify("+1 day")) {
+$inicio = new DateTime("today");
+$fim = new DateTime("today");
+$fim->modify("+30 days");
 
-    if ($d < $hoje) continue;
+for ($d = clone $inicio; $d <= $fim; $d->modify("+1 day")) {
 
-    // esconder hoje se já passou das 18h
-    if ($d->format("Y-m-d") == $hoje->format("Y-m-d") && $horaAtual >= $horaFecho) {
+    if ($d->format("Y-m-d") == $inicio->format("Y-m-d") && date("H:i") >= "18:00") {
         continue;
     }
 
@@ -51,33 +37,22 @@ for ($d = clone $primeiroDiaMes; $d <= $ultimoDiaMes; $d->modify("+1 day")) {
     $dias[] = [
         "date"=>$d->format("Y-m-d"),
         "dow"=>$diaSemanaNum,
-        "day"=>$d->format("d")
+        "day"=>$d->format("d"),
+        "month"=>$d->format("M")
     ];
 }
 
 $nomesSemana = ["Dom","Seg","Ter","Qua","Qui","Sex","Sáb"];
 
-$erro="";
-
 if ($_SERVER["REQUEST_METHOD"]==="POST"){
     $dia=$_POST["dia"] ?? "";
 
-    if(!preg_match('/^\d{4}-\d{2}-\d{2}$/',$dia)){
-        $erro="Escolhe um dia válido.";
-    }else{
-        $diaObj=DateTime::createFromFormat("Y-m-d",$dia);
-
-        if(!$diaObj){
-            $erro="Escolhe um dia válido.";
-        }elseif($diaObj<$hoje){
-            $erro="Não podes escolher um dia no passado.";
-        }else{
-            $_SESSION["marcacao_dia"]=$dia;
-            unset($_SESSION["marcacao_hora"]);
-            unset($_SESSION["marcacao_tipo"]);
-            header("Location: escolher_hora.php");
-            exit;
-        }
+    if(preg_match('/^\d{4}-\d{2}-\d{2}$/',$dia)){
+        $_SESSION["marcacao_dia"]=$dia;
+        unset($_SESSION["marcacao_hora"]);
+        unset($_SESSION["marcacao_tipo"]);
+        header("Location: escolher_hora.php");
+        exit;
     }
 }
 ?>
@@ -87,16 +62,20 @@ if ($_SERVER["REQUEST_METHOD"]==="POST"){
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Escolher Dia - Light's Barber</title>
+
 <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;700&family=Poppins:wght@300;400;600&display=swap" rel="stylesheet">
 
 <style>
 *{margin:0;padding:0;box-sizing:border-box;}
+
 body{
 background:#000;
 color:#fff;
 font-family:'Poppins',sans-serif;
 overflow-x:hidden;
 }
+
+/* LOGO FUNDO */
 body::before{
 content:"";
 position:fixed;
@@ -109,15 +88,18 @@ opacity:0.10;
 z-index:-1;
 pointer-events:none;
 }
+
+/* NAVBAR */
+
 header{
 position:fixed;
 width:100%;
 top:0;
 background:rgba(0,0,0,0.85);
-backdrop-filter:blur(8px);
 border-bottom:1px solid #1a1a1a;
 z-index:1000;
 }
+
 .navbar{
 max-width:1200px;
 margin:auto;
@@ -127,110 +109,86 @@ align-items:center;
 justify-content:space-between;
 position:relative;
 }
+
 .logo{
-font-family:'Playfair Display',serif;
-letter-spacing:3px;
-font-size:22px;
 position:absolute;
 left:50%;
 transform:translateX(-50%);
+font-family:'Playfair Display',serif;
+letter-spacing:3px;
+font-size:22px;
 }
+
 .nav-links{
 display:flex;
 gap:20px;
 align-items:center;
 }
+
 .nav-links a{
 text-decoration:none;
 color:white;
 font-size:14px;
-transition:0.3s;
 }
-.nav-links a:hover{
-color:#cfcfcf;
-}
-.menu-toggle{
-display:none;
-font-size:26px;
-background:none;
-border:none;
-color:white;
-cursor:pointer;
-}
+
+.left{ justify-content:flex-start; }
+.right{ justify-content:flex-end; }
+
+/* CONTEÚDO */
+
 .container{
 min-height:100vh;
 display:flex;
 align-items:center;
 justify-content:center;
-padding:120px 20px 60px;
+padding:130px 20px;
 }
+
 .box{
 width:100%;
-max-width:820px;
-background:rgba(0,0,0,0.85);
-border:1px solid #1a1a1a;
-padding:40px 30px;
+max-width:900px;
+background:#0f0f0f;
+padding:40px;
+border-radius:10px;
 text-align:center;
 }
-h2{
-font-family:'Playfair Display',serif;
-font-size:34px;
-margin-bottom:10px;
-}
-.sub{
-color:#ccc;
-margin-bottom:18px;
-font-size:14px;
-}
-.erro{
-color:#ff4d4d;
-margin-bottom:12px;
-}
+
 .grid{
 display:grid;
 grid-template-columns:repeat(7,1fr);
 gap:10px;
-margin-top:14px;
+margin-top:20px;
 }
+
 .daybtn{
-padding:14px 8px;
+padding:14px;
 background:#111;
 border:1px solid #222;
 color:#fff;
 cursor:pointer;
-transition:.2s;
-border-radius:14px;
+border-radius:10px;
+transition:0.3s;
 }
+
 .daybtn:hover{
 border-color:#555;
 transform:translateY(-2px);
 }
-.dow{
-font-size:12px;
-color:#bbb;
-margin-bottom:6px;
-}
-.num{
-font-size:18px;
-font-weight:700;
-}
+
+.dow{font-size:12px;color:#aaa;}
+.num{font-size:18px;font-weight:700;}
+.month{font-size:11px;color:#777;}
+
 .actions{
-margin-top:18px;
-display:flex;
-gap:10px;
-justify-content:center;
-flex-wrap:wrap;
+margin-top:20px;
 }
+
 .btn-outline{
 padding:12px 18px;
 border:1px solid #333;
 background:transparent;
 color:#fff;
-cursor:pointer;
 text-decoration:none;
-}
-.btn-outline:hover{
-border-color:#555;
 }
 </style>
 </head>
@@ -238,10 +196,10 @@ border-color:#555;
 <body>
 
 <header>
-<nav class="navbar">
-<button class="menu-toggle" id="menuToggle">☰</button>
 
-<div class="nav-links" id="navLinks">
+<nav class="navbar">
+
+<div class="nav-links left">
 <a href="index.php">Início</a>
 <a href="marcar_corte.php">Marcar Corte</a>
 <a href="minhas_marcacoes.php">Minhas Marcações</a>
@@ -250,17 +208,25 @@ border-color:#555;
 
 <div class="logo">LIGHT'S BARBER</div>
 
-<div class="nav-links">
-<a href="about.php">About Us</a>
+<div class="nav-links right">
+
+<a href="about.php">About</a>
 
 <?php if (isset($_SESSION['user_tipo']) && $_SESSION['user_tipo'] === 'barbeiro'): ?>
 <a href="dashboard_barbeiro.php">Dashboard</a>
 <?php endif; ?>
 
+<?php if($user_nome!=""): ?>
 <span>Olá, <?php echo htmlspecialchars($user_nome); ?></span>
 <a href="logout.php">Encerrar Sessão</a>
+<?php else: ?>
+<a href="login.php">Login</a>
+<?php endif; ?>
+
 </div>
+
 </nav>
+
 </header>
 
 <section class="container">
@@ -268,45 +234,17 @@ border-color:#555;
 
 <h2>2/4 — Escolher Dia</h2>
 
-<div class="sub">
-Barbeiro: <strong><?php echo htmlspecialchars($barbeiro_nome); ?></strong> — <?php echo $mesNome; ?>
-</div>
-
-<?php
-if($erro!=""){
-echo "<div class='erro'>$erro</div>";
-}
-?>
-
 <form method="POST">
+
 <div class="grid">
 
-<?php foreach($dias as $d):
+<?php foreach($dias as $d): ?>
 
-$diaData = $d["date"];
-
-$stmt = $conn->prepare("SELECT COUNT(*) as total FROM marcacoes WHERE barbeiro_id=? AND DATE(data_hora)=? AND estado!='cancelado'");
-$stmt->bind_param("is",$barbeiro_id,$diaData);
-$stmt->execute();
-$res=$stmt->get_result();
-$row=$res->fetch_assoc();
-$total=$row["total"] ?? 0;
-$stmt->close();
-
-$horariosTotais = 18;
-$bloqueado = $total >= $horariosTotais;
-?>
-
-<button
-class="daybtn"
-type="<?php echo $bloqueado ? 'button' : 'submit'; ?>"
-name="dia"
-value="<?php echo htmlspecialchars($d["date"]); ?>"
-style="<?php echo $bloqueado ? 'text-decoration:line-through;opacity:0.5;cursor:not-allowed;' : ''; ?>"
->
+<button class="daybtn" type="submit" name="dia" value="<?php echo $d["date"]; ?>">
 
 <div class="dow"><?php echo $nomesSemana[$d["dow"]]; ?></div>
-<div class="num"><?php echo htmlspecialchars($d["day"]); ?></div>
+<div class="num"><?php echo $d["day"]; ?></div>
+<div class="month"><?php echo $d["month"]; ?></div>
 
 </button>
 
@@ -317,18 +255,11 @@ style="<?php echo $bloqueado ? 'text-decoration:line-through;opacity:0.5;cursor:
 <div class="actions">
 <a class="btn-outline" href="marcar_corte.php">Voltar</a>
 </div>
+
 </form>
 
 </div>
 </section>
-
-<script>
-const toggle=document.getElementById("menuToggle");
-const nav=document.getElementById("navLinks");
-toggle.addEventListener("click",()=>{
-nav.classList.toggle("active");
-});
-</script>
 
 </body>
 </html>

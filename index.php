@@ -1,5 +1,12 @@
 <?php
 session_start();
+
+// 🔥 SE NÃO ESTIVER LOGADO → VAI PARA LANDING
+if (!isset($_SESSION['user_id'])) {
+    header("Location: landing.php");
+    exit;
+}
+
 $user_nome = $_SESSION['user_nome'] ?? "";
 ?>
 <!DOCTYPE html>
@@ -28,7 +35,7 @@ font-family:'Poppins',sans-serif;
 overflow-x:hidden;
 }
 
-/* LOGO NO FUNDO */
+/* LOGO FUNDO */
 
 body::before{
 content:"";
@@ -42,6 +49,8 @@ opacity:0.10;
 z-index:-1;
 pointer-events:none;
 }
+
+/* NAVBAR */
 
 header{
 position:fixed;
@@ -60,12 +69,17 @@ padding:16px 25px;
 display:flex;
 align-items:center;
 justify-content:space-between;
+position:relative;
 }
 
 .logo{
+position:absolute;
+left:50%;
+transform:translateX(-50%);
 font-family:'Playfair Display',serif;
 letter-spacing:3px;
 font-size:22px;
+white-space:nowrap;
 }
 
 .nav-links{
@@ -82,8 +96,10 @@ transition:0.3s;
 }
 
 .nav-links a:hover{
-color:#ccc;
+color:#cfcfcf;
 }
+
+/* HERO */
 
 .hero{
 height:100vh;
@@ -104,10 +120,12 @@ margin-bottom:15px;
 .hero p{
 color:#ccc;
 max-width:600px;
+margin-bottom:30px;
 }
 
+/* BOTÕES */
+
 .hero-buttons{
-margin-top:30px;
 display:flex;
 gap:15px;
 flex-wrap:wrap;
@@ -142,108 +160,21 @@ background:#fff;
 color:#000;
 }
 
-.section{
-padding:100px 20px;
-max-width:1100px;
-margin:auto;
-text-align:center;
-}
-
-.section h2{
-font-family:'Playfair Display',serif;
-font-size:38px;
-margin-bottom:20px;
-}
-
-.section p{
-color:#ccc;
-max-width:700px;
-margin:auto;
-line-height:1.6;
-}
-
-/* SERVIÇOS */
-
-.features{
-margin-top:40px;
-display:grid;
-grid-template-columns:repeat(3,1fr);
-gap:25px;
-}
-
-.feature{
-background:#0f0f0f;
-padding:30px;
-border:1px solid #1a1a1a;
-border-radius:10px;
-transition:all 0.35s ease;
-cursor:pointer;
-position:relative;
-overflow:hidden;
-}
-
-/* LINHA PREMIUM */
-
-.feature::before{
-content:"";
-position:absolute;
-top:0;
-left:0;
-width:0%;
-height:3px;
-background:#cfa64b;
-transition:0.4s;
-}
-
-.feature:hover::before{
-width:100%;
-}
-
-/* ANIMAÇÃO */
-
-.feature:hover{
-transform:translateY(-12px) scale(1.04);
-border-color:#444;
-box-shadow:0 20px 45px rgba(0,0,0,0.7);
-}
-
-.feature-icon{
-font-size:40px;
-margin-bottom:12px;
-transition:0.3s;
-}
-
-.feature:hover .feature-icon{
-transform:scale(1.25) rotate(-5deg);
-}
-
-.feature h3{
-margin-bottom:10px;
-transition:0.3s;
-}
-
-.feature:hover h3{
-color:#fff;
-}
+/* FOOTER */
 
 footer{
-border-top:1px solid #1a1a1a;
-padding:30px;
+position:absolute;
+bottom:10px;
+width:100%;
 text-align:center;
-color:#888;
-margin-top:80px;
+color:#666;
+font-size:12px;
 }
 
 @media(max-width:800px){
-
-.features{
-grid-template-columns:1fr;
-}
-
 .hero h1{
-font-size:38px;
+font-size:36px;
 }
-
 }
 
 </style>
@@ -255,25 +186,25 @@ font-size:38px;
 
 <nav class="navbar">
 
+<div class="nav-links">
+<a href="index.php">Início</a>
+<a href="marcar_corte.php">Marcar Corte</a>
+<a href="minhas_marcacoes.php">Minhas Marcações</a>
+<a href="loja.html">Loja</a>
+</div>
+
 <div class="logo">LIGHT'S BARBER</div>
 
 <div class="nav-links">
 
-<a href="index.php">Início</a>
-<a href="marcar_corte.php">Marcar Corte</a>
-<a href="minhas_marcacoes.php">Minhas Marcações</a>
 <a href="about.php">About</a>
 
-<?php if($user_nome!=""): ?>
+<?php if (isset($_SESSION['user_tipo']) && $_SESSION['user_tipo'] === 'barbeiro'): ?>
+<a href="dashboard_barbeiro.php">Dashboard</a>
+<?php endif; ?>
 
 <span>Olá, <?php echo htmlspecialchars($user_nome); ?></span>
-<a href="logout.php">Logout</a>
-
-<?php else: ?>
-
-<a href="login.php">Login</a>
-
-<?php endif; ?>
+<a href="logout.php">Encerrar Sessão</a>
 
 </div>
 
@@ -295,7 +226,7 @@ Na Light's Barber combinamos tradição e estilo moderno para criar cortes que r
 Marcar Corte
 </a>
 
-<a href="#sobre" class="btn-outline">
+<a href="about.php" class="btn-outline">
 Conhecer Barbearia
 </a>
 
@@ -303,49 +234,8 @@ Conhecer Barbearia
 
 </section>
 
-<section class="section" id="sobre">
-
-<h2>Tradição e Estilo em Cada Corte</h2>
-
-<p>
-Na Light's Barber acreditamos que um corte de cabelo é mais do que estética — é identidade.  
-Combinamos técnicas clássicas de barbearia com estilos modernos para garantir que cada cliente saia com confiança e personalidade.
-</p>
-
-<div class="features">
-
-<div class="feature">
-
-<div class="feature-icon">✂️</div>
-<h3>Cortes Profissionais</h3>
-<p>Cortes modernos e clássicos adaptados ao teu estilo.</p>
-
-</div>
-
-<div class="feature">
-
-<div class="feature-icon">🧔</div>
-<h3>Cuidados com a Barba</h3>
-<p>Modelagem e manutenção profissional da barba.</p>
-
-</div>
-
-<div class="feature">
-
-<div class="feature-icon">⭐</div>
-<h3>Experiência Premium</h3>
-<p>Ambiente confortável e atendimento de qualidade.</p>
-
-</div>
-
-</div>
-
-</section>
-
 <footer>
-
 © <?php echo date("Y"); ?> Light's Barber
-
 </footer>
 
 </body>

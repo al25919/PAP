@@ -24,8 +24,8 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
             $_SESSION['user_nome'] = $user['nome'];
             $_SESSION['user_tipo'] = $user['tipo'];
 
-            // Todos entram primeiro no site normal
-            header("Location: index.php?login=success");
+            // 🔥 CORREÇÃO: ir para o site principal
+            header("Location: index.php");
             exit;
 
         } else {

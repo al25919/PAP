@@ -12,6 +12,8 @@ $dia = $_SESSION["marcacao_dia"];
 
 date_default_timezone_set("Europe/Lisbon");
 
+/* HORÁRIOS */
+
 $horarios = [];
 
 $hora = new DateTime("09:00");
@@ -21,6 +23,8 @@ while ($hora < $fim) {
     $horarios[] = $hora->format("H:i");
     $hora->modify("+30 minutes");
 }
+
+/* OCUPADOS */
 
 $horariosOcupados = [];
 
@@ -39,6 +43,13 @@ while($row=$res->fetch_assoc()){
 }
 
 $stmt->close();
+
+/* HORA ATUAL */
+
+$agora = new DateTime();
+$horaAtual = $agora->format("H:i");
+
+/* SUBMIT */
 
 if($_SERVER["REQUEST_METHOD"]==="POST"){
     $horaEscolhida=$_POST["hora"] ?? "";
@@ -69,12 +80,27 @@ font-family:'Poppins',sans-serif;
 overflow-x:hidden;
 }
 
+/* LOGO FUNDO */
+body::before{
+content:"";
+position:fixed;
+inset:0;
+background-image:url('Imagem/Logo.png');
+background-repeat:no-repeat;
+background-position:center 35%;
+background-size:min(80vw,700px);
+opacity:0.10;
+z-index:-1;
+pointer-events:none;
+}
+
+/* NAVBAR */
+
 header{
 position:fixed;
 width:100%;
 top:0;
 background:rgba(0,0,0,0.85);
-backdrop-filter:blur(8px);
 border-bottom:1px solid #1a1a1a;
 z-index:1000;
 }
@@ -90,12 +116,12 @@ position:relative;
 }
 
 .logo{
-font-family:'Playfair Display',serif;
-letter-spacing:3px;
-font-size:22px;
 position:absolute;
 left:50%;
 transform:translateX(-50%);
+font-family:'Playfair Display',serif;
+letter-spacing:3px;
+font-size:22px;
 }
 
 .nav-links{
@@ -108,30 +134,28 @@ align-items:center;
 text-decoration:none;
 color:white;
 font-size:14px;
-transition:0.3s;
 }
+
+.left{ justify-content:flex-start; }
+.right{ justify-content:flex-end; }
+
+/* CONTEÚDO */
 
 .container{
 min-height:100vh;
 display:flex;
 align-items:center;
 justify-content:center;
-padding:120px 20px 60px;
+padding:130px 20px;
 }
 
 .box{
 width:100%;
-max-width:820px;
-background:rgba(0,0,0,0.85);
-border:1px solid #1a1a1a;
-padding:40px 30px;
+max-width:800px;
+background:#0f0f0f;
+padding:40px;
+border-radius:10px;
 text-align:center;
-}
-
-h2{
-font-family:'Playfair Display',serif;
-font-size:34px;
-margin-bottom:10px;
 }
 
 .grid{
@@ -147,12 +171,14 @@ background:#111;
 border:1px solid #222;
 color:#fff;
 cursor:pointer;
-border-radius:12px;
+border-radius:10px;
 }
 
 .hourbtn:hover{
 border-color:#555;
 }
+
+/* BLOQUEADO */
 
 .hourbtn:disabled{
 text-decoration:line-through;
@@ -162,9 +188,6 @@ cursor:not-allowed;
 
 .actions{
 margin-top:20px;
-display:flex;
-gap:10px;
-justify-content:center;
 }
 
 .btn-outline{
@@ -172,12 +195,7 @@ padding:12px 18px;
 border:1px solid #333;
 background:transparent;
 color:#fff;
-cursor:pointer;
 text-decoration:none;
-}
-
-.btn-outline:hover{
-border-color:#555;
 }
 </style>
 </head>
@@ -185,22 +203,37 @@ border-color:#555;
 <body>
 
 <header>
+
 <nav class="navbar">
 
-<div class="nav-links">
+<div class="nav-links left">
 <a href="index.php">Início</a>
 <a href="marcar_corte.php">Marcar Corte</a>
 <a href="minhas_marcacoes.php">Minhas Marcações</a>
+<a href="loja.html">Loja</a>
 </div>
 
 <div class="logo">LIGHT'S BARBER</div>
 
-<div class="nav-links">
+<div class="nav-links right">
+
+<a href="about.php">About</a>
+
+<?php if (isset($_SESSION['user_tipo']) && $_SESSION['user_tipo'] === 'barbeiro'): ?>
+<a href="dashboard_barbeiro.php">Dashboard</a>
+<?php endif; ?>
+
+<?php if($user_nome!=""): ?>
 <span>Olá, <?php echo htmlspecialchars($user_nome); ?></span>
 <a href="logout.php">Encerrar Sessão</a>
+<?php else: ?>
+<a href="login.php">Login</a>
+<?php endif; ?>
+
 </div>
 
 </nav>
+
 </header>
 
 <section class="container">
@@ -216,14 +249,21 @@ border-color:#555;
 
 $ocupado = in_array($h,$horariosOcupados);
 
+/* BLOQUEAR HORAS PASSADAS */
+$horaPassada = false;
+
+if($dia == date("Y-m-d") && $h <= $horaAtual){
+    $horaPassada = true;
+}
+
 ?>
 
 <button
 class="hourbtn"
-type="<?php echo $ocupado ? 'button' : 'submit'; ?>"
+type="<?php echo ($ocupado || $horaPassada) ? 'button' : 'submit'; ?>"
 name="hora"
 value="<?php echo $h; ?>"
-<?php echo $ocupado ? 'disabled' : ''; ?>
+<?php echo ($ocupado || $horaPassada) ? 'disabled' : ''; ?>
 >
 
 <?php echo $h; ?>
