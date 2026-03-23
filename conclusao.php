@@ -1,5 +1,9 @@
 <?php
 session_start();
+
+use PHPMailer\PHPMailer\PHPMailer;
+use PHPMailer\PHPMailer\Exception;
+
 include("ligacao.php");
 
 if (!isset($_SESSION['user_id'])) { header("Location: login.php"); exit; }
@@ -75,6 +79,68 @@ if ($_SERVER["REQUEST_METHOD"] === "POST" && isset($_POST["tipo_corte"])) {
       if ($stmt->execute()) {
         $_SESSION["marcacao_servico"] = $tipo;
         $_SESSION["marcacao_preco"] = $preco;
+
+        // ===== EMAIL =====
+$stmtUser = $conn->prepare("SELECT nome, email FROM utilizadores WHERE id = ?");
+$stmtUser->bind_param("i", $user_id);
+$stmtUser->execute();
+$resUser = $stmtUser->get_result();
+$userData = $resUser->fetch_assoc();
+$stmtUser->close();
+
+$nome = $userData['nome'];
+$email = $userData['email'];
+
+$dataFormatada = date('d/m/Y', strtotime($data_hora));
+$horaFormatada = date('H:i', strtotime($data_hora));
+
+$assunto = "Confirmacao de Marcacao";
+$mensagem = "Olá $nome,\n\n".
+            "A tua marcacao foi confirmada:\n\n".
+            "Barbeiro: $barbeiro_nome\n".
+            "Data: $dataFormatada\n".
+            "Hora: $horaFormatada\n".
+            "Servico: $tipo\n\n".
+            "Obrigado por escolher a Light's Barber 💈";
+
+$headers = "From: no-reply@lightsbarber.com";
+
+
+require 'phpmailer/PHPMailer-master/src/Exception.php';
+require 'phpmailer/PHPMailer-master/src/PHPMailer.php';
+require 'phpmailer/PHPMailer-master/src/SMTP.php';
+
+$mail = new PHPMailer(true);
+
+try {
+    $mail->SMTPDebug = 0;
+    $mail->isSMTP();
+    $mail->Host = 'smtp.gmail.com';
+    $mail->SMTPAuth = true;
+    $mail->Username = 'daniel.30.luz@gmail.com';
+    $mail->Password = 'lbwenkykjdveiysp';
+    $mail->SMTPSecure = 'tls';
+    $mail->Port = 587;
+
+    $mail->setFrom('daniel.30.luz@gmail.com', 'Light Barber');
+    $mail->addAddress($email, $nome);
+
+    $mail->isHTML(true);
+    $mail->Subject = 'Confirmacao de Marcacao';
+    $mail->Body = "
+        <h2>Marcação Confirmada 💈</h2>
+        <p><strong>Barbeiro:</strong> $barbeiro_nome</p>
+        <p><strong>Data:</strong> $dataFormatada</p>
+        <p><strong>Hora:</strong> $horaFormatada</p>
+        <p><strong>Serviço:</strong> $tipo</p>
+    ";
+
+    $mail->send();
+
+} catch (Exception $e) {
+    echo "Erro ao enviar email: {$mail->ErrorInfo}";
+}
+// ===== FIM EMAIL =====
 
         $sucesso = "Marcação concluída com sucesso!";
 
