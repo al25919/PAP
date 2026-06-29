@@ -15,11 +15,6 @@ if ($res) {
   while ($row = $res->fetch_assoc()) $barbeiros[] = $row;
 }
 
-$fotos = [
-  'Daniel'  => 'Imagem/barbeiro 2.jpg',
-  'Gonçalo' => 'Imagem/barbeiro 1.jpg',
-];
-
 $erro = "";
 if ($_SERVER["REQUEST_METHOD"] === "POST") {
   $barbeiro_id = isset($_POST["barbeiro_id"]) ? (int)$_POST["barbeiro_id"] : 0;
@@ -190,7 +185,6 @@ overflow:hidden;
 width:100%;
 height:100%;
 object-fit:cover;
-object-position:top;
 filter:grayscale(30%);
 transition:0.3s;
 }
@@ -304,13 +298,12 @@ grid-template-columns:1fr;
 <a href="index.php">Início</a>
 <a href="marcar_corte.php">Marcar Corte</a>
 <a href="minhas_marcacoes.php">Minhas Marcações</a>
-<a href="loja.html">Loja</a>
 </div>
 
 <div class="logo">LIGHT'S BARBER</div>
 
 <div class="nav-links">
-<a href="about.php">About Us</a>
+<a href="about.php">About</a>
 
 <?php if (isset($_SESSION['user_tipo']) && $_SESSION['user_tipo'] === 'barbeiro'): ?>
 <a href="dashboard_barbeiro.php">Dashboard</a>
@@ -345,12 +338,10 @@ echo "<div class='erro'>$erro</div>";
 
 <div class="grid">
 
-<?php foreach($barbeiros as $b):
-  $foto = $fotos[$b['nome']] ?? 'Imagem/placeholder_barbeiro.jpg';
-?>
+<?php foreach($barbeiros as $b): ?>
 <div class="card" data-id="<?php echo (int)$b['id']; ?>">
 <div class="cover">
-<img src="<?php echo htmlspecialchars($foto); ?>" alt="<?php echo htmlspecialchars($b['nome']); ?>">
+<img src="Imagem/placeholder_barbeiro.jpg" alt="Barbeiro">
 </div>
 
 <div class="content">

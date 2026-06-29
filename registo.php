@@ -96,7 +96,6 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
     <div class="nav-links" id="navLinks">
       <a href="index.php">Início</a>
       <a href="marcar_corte.php">Marcar Corte</a>
-      <a href="loja.html">Loja</a>
     </div>
     <div class="logo">LIGHT'S BARBER</div>
     <div class="nav-links">

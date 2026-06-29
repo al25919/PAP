@@ -124,7 +124,6 @@ h2{font-family:'Playfair Display',serif;font-size:34px;margin-bottom:10px;}
     <div class="nav-links" id="navLinks">
       <a href="index.php">Início</a>
       <a href="marcar_corte.php">Marcar Corte</a>
-      <a href="loja.html">Loja</a>
     </div>
     <div class="logo">LIGHT'S BARBER</div>
     <div class="nav-links">

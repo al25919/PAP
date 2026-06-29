@@ -210,7 +210,6 @@ text-decoration:none;
 <a href="index.php">Início</a>
 <a href="marcar_corte.php">Marcar Corte</a>
 <a href="minhas_marcacoes.php">Minhas Marcações</a>
-<a href="loja.html">Loja</a>
 </div>
 
 <div class="logo">LIGHT'S BARBER</div>
