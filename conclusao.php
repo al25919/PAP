@@ -81,66 +81,85 @@ if ($_SERVER["REQUEST_METHOD"] === "POST" && isset($_POST["tipo_corte"])) {
         $_SESSION["marcacao_preco"] = $preco;
 
         // ===== EMAIL =====
-$stmtUser = $conn->prepare("SELECT nome, email FROM utilizadores WHERE id = ?");
-$stmtUser->bind_param("i", $user_id);
-$stmtUser->execute();
-$resUser = $stmtUser->get_result();
-$userData = $resUser->fetch_assoc();
-$stmtUser->close();
+        $stmtUser = $conn->prepare("SELECT nome, email FROM utilizadores WHERE id = ?");
+        $stmtUser->bind_param("i", $user_id);
+        $stmtUser->execute();
+        $resUser = $stmtUser->get_result();
+        $userData = $resUser->fetch_assoc();
+        $stmtUser->close();
 
-$nome = $userData['nome'];
-$email = $userData['email'];
+        $nomeUser = $userData['nome'];
+        $emailUser = $userData['email'];
 
-$dataFormatada = date('d/m/Y', strtotime($data_hora));
-$horaFormatada = date('H:i', strtotime($data_hora));
+        $dataFormatada = date('d/m/Y', strtotime($data_hora));
+        $horaFormatada = date('H:i', strtotime($data_hora));
 
-$assunto = "Confirmacao de Marcacao";
-$mensagem = "Olá $nome,\n\n".
-            "A tua marcacao foi confirmada:\n\n".
-            "Barbeiro: $barbeiro_nome\n".
-            "Data: $dataFormatada\n".
-            "Hora: $horaFormatada\n".
-            "Servico: $tipo\n\n".
-            "Obrigado por escolher a Light's Barber 💈";
+        require 'phpmailer/PHPMailer-master/src/Exception.php';
+        require 'phpmailer/PHPMailer-master/src/PHPMailer.php';
+        require 'phpmailer/PHPMailer-master/src/SMTP.php';
 
-$headers = "From: no-reply@lightsbarber.com";
+        $mail = new PHPMailer(true);
 
+        try {
+            $mail->isSMTP();
+            $mail->Host = 'smtp.gmail.com';
+            $mail->SMTPAuth = true;
+            $mail->Username = 'daniel.30.luz@gmail.com';
+            $mail->Password = 'lbwenkykjdveiysp';
+            $mail->SMTPSecure = 'tls';
+            $mail->Port = 587;
 
-require 'phpmailer/PHPMailer-master/src/Exception.php';
-require 'phpmailer/PHPMailer-master/src/PHPMailer.php';
-require 'phpmailer/PHPMailer-master/src/SMTP.php';
+            $mail->setFrom('daniel.30.luz@gmail.com', "Light's Barber");
+            $mail->addAddress($emailUser, $nomeUser);
 
-$mail = new PHPMailer(true);
+            $mail->isHTML(true);
+            $mail->CharSet = 'UTF-8';
+            $mail->Subject = "Marcação Confirmada — Light's Barber";
 
-try {
-    $mail->SMTPDebug = 0;
-    $mail->isSMTP();
-    $mail->Host = 'smtp.gmail.com';
-    $mail->SMTPAuth = true;
-    $mail->Username = 'daniel.30.luz@gmail.com';
-    $mail->Password = 'lbwenkykjdveiysp';
-    $mail->SMTPSecure = 'tls';
-    $mail->Port = 587;
+            $mail->Body = "
+            <div style='font-family: Arial, sans-serif; max-width: 520px; margin: auto; background: #111; color: #fff; border-radius: 10px; overflow: hidden;'>
+                <div style='background: #000; padding: 24px; text-align: center; border-bottom: 2px solid #cfa64b;'>
+                    <h1 style='margin: 0; font-size: 22px; letter-spacing: 3px; color: #cfa64b;'>LIGHT'S BARBER</h1>
+                </div>
+                <div style='padding: 30px 28px;'>
+                    <h2 style='margin: 0 0 8px 0; font-size: 18px; color: #fff;'>Marcação Confirmada ✂️</h2>
+                    <p style='color: #ccc; margin: 0 0 24px 0; font-size: 14px;'>Olá <strong style='color:#fff;'>$nomeUser</strong>, a tua marcação foi confirmada com sucesso.</p>
+                    <div style='background: #1a1a1a; border-radius: 8px; padding: 20px;'>
+                        <table style='width: 100%; border-collapse: collapse; font-size: 14px;'>
+                            <tr>
+                                <td style='padding: 10px 0; border-bottom: 1px solid #2a2a2a; color: #999;'>Data</td>
+                                <td style='padding: 10px 0; border-bottom: 1px solid #2a2a2a; color: #fff; text-align: right;'><strong>$dataFormatada</strong></td>
+                            </tr>
+                            <tr>
+                                <td style='padding: 10px 0; border-bottom: 1px solid #2a2a2a; color: #999;'>Hora</td>
+                                <td style='padding: 10px 0; border-bottom: 1px solid #2a2a2a; color: #fff; text-align: right;'><strong>$horaFormatada</strong></td>
+                            </tr>
+                            <tr>
+                                <td style='padding: 10px 0; border-bottom: 1px solid #2a2a2a; color: #999;'>Barbeiro</td>
+                                <td style='padding: 10px 0; border-bottom: 1px solid #2a2a2a; color: #fff; text-align: right;'><strong>$barbeiro_nome</strong></td>
+                            </tr>
+                            <tr>
+                                <td style='padding: 10px 0; color: #999;'>Serviço</td>
+                                <td style='padding: 10px 0; color: #cfa64b; text-align: right;'><strong>$tipo</strong></td>
+                            </tr>
+                        </table>
+                    </div>
+                    <p style='color: #888; font-size: 12px; margin: 24px 0 0 0; text-align: center;'>
+                        Caso precise de cancelar, podes fazê-lo na tua área de cliente.<br>
+                        Até já! ✂️
+                    </p>
+                </div>
+            </div>
+            ";
 
-    $mail->setFrom('daniel.30.luz@gmail.com', 'Light Barber');
-    $mail->addAddress($email, $nome);
+            $mail->AltBody = "Olá $nomeUser, a tua marcação foi confirmada.\nData: $dataFormatada\nHora: $horaFormatada\nBarbeiro: $barbeiro_nome\nServiço: $tipo";
 
-    $mail->isHTML(true);
-    $mail->Subject = 'Confirmacao de Marcacao';
-    $mail->Body = "
-        <h2>Marcação Confirmada 💈</h2>
-        <p><strong>Barbeiro:</strong> $barbeiro_nome</p>
-        <p><strong>Data:</strong> $dataFormatada</p>
-        <p><strong>Hora:</strong> $horaFormatada</p>
-        <p><strong>Serviço:</strong> $tipo</p>
-    ";
+            $mail->send();
 
-    $mail->send();
-
-} catch (Exception $e) {
-    echo "Erro ao enviar email: {$mail->ErrorInfo}";
-}
-// ===== FIM EMAIL =====
+        } catch (Exception $e) {
+            // não quebra o site
+        }
+        // ===== FIM EMAIL =====
 
         $sucesso = "Marcação concluída com sucesso!";
 
@@ -182,7 +201,7 @@ h2{font-family:'Playfair Display',serif;font-size:34px;margin-bottom:10px;}
 .sum{border:1px solid #222;background:#0b0b0b;padding:14px;margin:12px 0 18px;text-align:left;border-radius:14px;}
 .sum div{margin:6px 0;color:#ddd;}
 
-.section-title{ text-align:left; font-size:16px; font-weight:600; margin:4px 0 10px; }
+.section-title{text-align:left;font-size:16px;font-weight:600;margin:4px 0 10px;}
 
 .services{display:flex;flex-direction:column;gap:12px;margin-top:6px;}
 .service-item{
@@ -192,10 +211,7 @@ h2{font-family:'Playfair Display',serif;font-size:34px;margin-bottom:10px;}
 }
 .service-item:hover{border-color:#444;transform:translateY(-1px);}
 .service-left{display:flex;align-items:center;gap:14px;min-width:0;}
-.service-icon{
-  width:44px;height:44px;border-radius:12px;background:#fff;color:#000;
-  display:flex;align-items:center;justify-content:center;font-size:20px;flex:0 0 auto;
-}
+.service-icon{width:44px;height:44px;border-radius:12px;background:#fff;color:#000;display:flex;align-items:center;justify-content:center;font-size:20px;flex:0 0 auto;}
 .service-text{text-align:left;min-width:0;}
 .service-name{font-size:15px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
 .service-price{margin-top:4px;font-size:13px;color:#cfcfcf;}
@@ -210,63 +226,16 @@ h2{font-family:'Playfair Display',serif;font-size:34px;margin-bottom:10px;}
 .btn-outline{padding:12px 18px;border:1px solid #333;background:transparent;color:#fff;cursor:pointer;text-decoration:none;display:inline-block;border-radius:12px;}
 .btn-outline:hover{border-color:#555;}
 
-.modal-backdrop{
-  position:fixed;
-  inset:0;
-  background:rgba(0,0,0,0.65);
-  display:none;
-  align-items:center;
-  justify-content:center;
-  z-index:5000;
-  padding:20px;
-}
-
-.modal{
-  width:100%;
-  max-width:520px;
-  background:#0b0b0b;
-  border:1px solid #222;
-  border-radius:16px;
-  overflow:hidden;
-}
-
-.modal-header{
-  padding:16px 16px 12px;
-  border-bottom:1px solid #1a1a1a;
-  text-align:left;
-}
-
-.modal-title{
-  font-family:'Playfair Display',serif;
-  font-size:22px;
-}
-
-.modal-body{
-  padding:16px;
-  text-align:left;
-  color:#ddd;
-}
-
-.modal-row{
-  display:flex;
-  justify-content:space-between;
-  gap:14px;
-  padding:10px 0;
-  border-bottom:1px dashed rgba(255,255,255,0.10);
-}
-
+.modal-backdrop{position:fixed;inset:0;background:rgba(0,0,0,0.65);display:none;align-items:center;justify-content:center;z-index:5000;padding:20px;}
+.modal{width:100%;max-width:520px;background:#0b0b0b;border:1px solid #222;border-radius:16px;overflow:hidden;}
+.modal-header{padding:16px 16px 12px;border-bottom:1px solid #1a1a1a;text-align:left;}
+.modal-title{font-family:'Playfair Display',serif;font-size:22px;}
+.modal-body{padding:16px;text-align:left;color:#ddd;}
+.modal-row{display:flex;justify-content:space-between;gap:14px;padding:10px 0;border-bottom:1px dashed rgba(255,255,255,0.10);}
 .modal-row:last-child{border-bottom:none;}
-
 .modal-label{color:#bbb;}
-.modal-value{font-weight:600; text-align:right;}
-
-.modal-actions{
-  padding:14px 16px 16px;
-  display:flex;
-  gap:10px;
-  justify-content:flex-end;
-  border-top:1px solid #1a1a1a;
-}
+.modal-value{font-weight:600;text-align:right;}
+.modal-actions{padding:14px 16px 16px;display:flex;gap:10px;justify-content:flex-end;border-top:1px solid #1a1a1a;}
 
 @media(max-width:800px){
   .logo{position:static;transform:none;}
@@ -290,11 +259,9 @@ h2{font-family:'Playfair Display',serif;font-size:34px;margin-bottom:10px;}
     <div class="logo">LIGHT'S BARBER</div>
     <div class="nav-links">
       <a href="about.php">About Us</a>
-
       <?php if (isset($_SESSION['user_tipo']) && $_SESSION['user_tipo'] === 'barbeiro'): ?>
       <a href="dashboard_barbeiro.php">Dashboard</a>
       <?php endif; ?>
-
       <span style="font-size:14px;">Olá, <?php echo htmlspecialchars($user_nome); ?></span>
       <a href="logout.php">Encerrar Sessão</a>
     </div>
@@ -326,7 +293,6 @@ h2{font-family:'Playfair Display',serif;font-size:34px;margin-bottom:10px;}
     <?php if($sucesso==""): ?>
       <form method="POST" id="formServico">
         <div class="section-title">Serviços</div>
-
         <div class="services">
           <?php foreach($servicos as $nome => $info): ?>
             <label class="service-item"
@@ -344,7 +310,6 @@ h2{font-family:'Playfair Display',serif;font-size:34px;margin-bottom:10px;}
             </label>
           <?php endforeach; ?>
         </div>
-
         <div class="actions">
           <a class="btn-outline" href="escolher_hora.php">Voltar</a>
           <button type="submit" class="btn" id="btnConcluir" disabled>Concluir Marcação</button>
@@ -364,7 +329,6 @@ h2{font-family:'Playfair Display',serif;font-size:34px;margin-bottom:10px;}
     <div class="modal-header">
       <div class="modal-title">Confirmar Marcação</div>
     </div>
-
     <div class="modal-body">
       <div class="modal-row">
         <div class="modal-label">Barbeiro</div>
@@ -387,7 +351,6 @@ h2{font-family:'Playfair Display',serif;font-size:34px;margin-bottom:10px;}
         <div class="modal-value" id="mPreco">—</div>
       </div>
     </div>
-
     <div class="modal-actions">
       <button class="btn-outline" type="button" id="btnCancelarModal">Cancelar</button>
       <button class="btn" type="button" id="btnConfirmarModal">Confirmar</button>
@@ -400,86 +363,58 @@ const toggle=document.getElementById("menuToggle");
 const nav=document.getElementById("navLinks");
 toggle.addEventListener("click",()=>nav.classList.toggle("active"));
 
-const serviceItems = document.querySelectorAll(".service-item");
-const btnConcluir = document.getElementById("btnConcluir");
+const serviceItems=document.querySelectorAll(".service-item");
+const btnConcluir=document.getElementById("btnConcluir");
+const resumoServico=document.getElementById("resumoServico");
+const resumoPreco=document.getElementById("resumoPreco");
+const servicoNome=document.getElementById("servicoNome");
+const servicoPreco=document.getElementById("servicoPreco");
 
-const resumoServico = document.getElementById("resumoServico");
-const resumoPreco = document.getElementById("resumoPreco");
-const servicoNome = document.getElementById("servicoNome");
-const servicoPreco = document.getElementById("servicoPreco");
+let escolhidoNome="";
+let escolhidoPreco="";
 
-let escolhidoNome = "";
-let escolhidoPreco = "";
-
-serviceItems.forEach(item => {
-  item.addEventListener("click", () => {
-    serviceItems.forEach(i => i.classList.remove("selected"));
+serviceItems.forEach(item=>{
+  item.addEventListener("click",()=>{
+    serviceItems.forEach(i=>i.classList.remove("selected"));
     item.classList.add("selected");
-
-    escolhidoNome = item.dataset.servico || "";
-    escolhidoPreco = item.dataset.preco || "";
-
-    if (btnConcluir) btnConcluir.disabled = false;
-
-    if (resumoServico && resumoPreco && servicoNome && servicoPreco) {
-      servicoNome.textContent = escolhidoNome;
-      servicoPreco.textContent = escolhidoPreco;
-      resumoServico.style.display = "block";
-      resumoPreco.style.display = "block";
+    escolhidoNome=item.dataset.servico||"";
+    escolhidoPreco=item.dataset.preco||"";
+    if(btnConcluir)btnConcluir.disabled=false;
+    if(resumoServico&&resumoPreco&&servicoNome&&servicoPreco){
+      servicoNome.textContent=escolhidoNome;
+      servicoPreco.textContent=escolhidoPreco;
+      resumoServico.style.display="block";
+      resumoPreco.style.display="block";
     }
   });
 });
 
-const form = document.getElementById("formServico");
-const backdrop = document.getElementById("modalBackdrop");
-const btnCancelarModal = document.getElementById("btnCancelarModal");
-const btnConfirmarModal = document.getElementById("btnConfirmarModal");
-
-const mServico = document.getElementById("mServico");
-const mPreco = document.getElementById("mPreco");
+const form=document.getElementById("formServico");
+const backdrop=document.getElementById("modalBackdrop");
+const btnCancelarModal=document.getElementById("btnCancelarModal");
+const btnConfirmarModal=document.getElementById("btnConfirmarModal");
+const mServico=document.getElementById("mServico");
+const mPreco=document.getElementById("mPreco");
 
 function abrirModal(){
-  if (!backdrop) return;
-  mServico.textContent = escolhidoNome || "—";
-  mPreco.textContent = escolhidoPreco || "—";
-  backdrop.style.display = "flex";
+  if(!backdrop)return;
+  mServico.textContent=escolhidoNome||"—";
+  mPreco.textContent=escolhidoPreco||"—";
+  backdrop.style.display="flex";
   backdrop.setAttribute("aria-hidden","false");
 }
 
 function fecharModal(){
-  if (!backdrop) return;
-  backdrop.style.display = "none";
+  if(!backdrop)return;
+  backdrop.style.display="none";
   backdrop.setAttribute("aria-hidden","true");
 }
 
-if (form) {
-  form.addEventListener("submit", (e) => {
-    e.preventDefault();
-    if (!escolhidoNome || !escolhidoPreco) return;
-    abrirModal();
-  });
-}
-
-if (btnCancelarModal) {
-  btnCancelarModal.addEventListener("click", fecharModal);
-}
-
-if (btnConfirmarModal && form) {
-  btnConfirmarModal.addEventListener("click", () => {
-    fecharModal();
-    form.submit();
-  });
-}
-
-if (backdrop) {
-  backdrop.addEventListener("click", (e) => {
-    if (e.target === backdrop) fecharModal();
-  });
-}
-
-document.addEventListener("keydown", (e) => {
-  if (e.key === "Escape") fecharModal();
-});
+if(form){form.addEventListener("submit",(e)=>{e.preventDefault();if(!escolhidoNome||!escolhidoPreco)return;abrirModal();});}
+if(btnCancelarModal){btnCancelarModal.addEventListener("click",fecharModal);}
+if(btnConfirmarModal&&form){btnConfirmarModal.addEventListener("click",()=>{fecharModal();form.submit();});}
+if(backdrop){backdrop.addEventListener("click",(e)=>{if(e.target===backdrop)fecharModal();});}
+document.addEventListener("keydown",(e)=>{if(e.key==="Escape")fecharModal();});
 </script>
 
 </body>

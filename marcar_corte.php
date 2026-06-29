@@ -15,6 +15,11 @@ if ($res) {
   while ($row = $res->fetch_assoc()) $barbeiros[] = $row;
 }
 
+$fotos = [
+  'Daniel'  => 'Imagem/barbeiro 2.jpg',
+  'Gonçalo' => 'Imagem/barbeiro 1.jpg',
+];
+
 $erro = "";
 if ($_SERVER["REQUEST_METHOD"] === "POST") {
   $barbeiro_id = isset($_POST["barbeiro_id"]) ? (int)$_POST["barbeiro_id"] : 0;
@@ -185,6 +190,7 @@ overflow:hidden;
 width:100%;
 height:100%;
 object-fit:cover;
+object-position:top;
 filter:grayscale(30%);
 transition:0.3s;
 }
@@ -339,10 +345,12 @@ echo "<div class='erro'>$erro</div>";
 
 <div class="grid">
 
-<?php foreach($barbeiros as $b): ?>
+<?php foreach($barbeiros as $b):
+  $foto = $fotos[$b['nome']] ?? 'Imagem/placeholder_barbeiro.jpg';
+?>
 <div class="card" data-id="<?php echo (int)$b['id']; ?>">
 <div class="cover">
-<img src="Imagem/placeholder_barbeiro.jpg" alt="Barbeiro">
+<img src="<?php echo htmlspecialchars($foto); ?>" alt="<?php echo htmlspecialchars($b['nome']); ?>">
 </div>
 
 <div class="content">
