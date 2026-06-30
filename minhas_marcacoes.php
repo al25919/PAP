@@ -1,7 +1,14 @@
 <?php
+// ============================================================
+// MINHAS_MARCACOES.PHP
+// Mostra ao cliente o histórico de todas as suas marcações,
+// permitindo cancelar as que ainda estão pendentes
+// ============================================================
+
 session_start();
 include("ligacao.php");
 
+// Só pode aceder quem tiver sessão ativa
 if (!isset($_SESSION['user_id'])) {
     header("Location: login.php");
     exit;
@@ -12,9 +19,12 @@ $user_nome = $_SESSION['user_nome'] ?? "Utilizador";
 
 date_default_timezone_set("Europe/Lisbon");
 
+// ----- CANCELAMENTO DE MARCAÇÃO -----
+// Processa o pedido de cancelamento quando o cliente clica em "Cancelar"
 if (isset($_POST['cancelar_id'])) {
     $id = (int)$_POST['cancelar_id'];
 
+    // Verifica primeiro se a marcação existe e pertence a este cliente
     $stmtCheck = $conn->prepare("
         SELECT data_hora, estado
         FROM marcacoes
@@ -31,11 +41,14 @@ if (isset($_POST['cancelar_id'])) {
     if ($resCheck && $resCheck->num_rows > 0) {
         $marc = $resCheck->fetch_assoc();
 
+        // Só permite cancelar marcações que ainda estejam "pendente"
         if ($marc['estado'] === 'pendente') {
             $agoraTs = time();
             $marcacaoTs = strtotime($marc['data_hora']);
             $diffSegundos = $marcacaoTs - $agoraTs;
 
+            // Regra de negócio: só pode cancelar com mais de 4 horas
+            // de antecedência em relação à hora marcada
             if ($diffSegundos > (4 * 60 * 60)) {
                 $podeCancelar = true;
             }
@@ -44,6 +57,7 @@ if (isset($_POST['cancelar_id'])) {
 
     $stmtCheck->close();
 
+    // Se passou todas as validações, atualiza o estado para "cancelado"
     if ($podeCancelar) {
         $stmt = $conn->prepare("
             UPDATE marcacoes
@@ -57,10 +71,14 @@ if (isset($_POST['cancelar_id'])) {
         $stmt->close();
     }
 
+    // Recarrega a página para mostrar o estado atualizado
     header("Location: minhas_marcacoes.php");
     exit;
 }
 
+// ----- ATUALIZAÇÃO AUTOMÁTICA DE MARCAÇÕES PASSADAS -----
+// Antes de mostrar a lista, marca automaticamente como "concluído"
+// qualquer marcação pendente cuja data/hora já tenha passado
 $agora = date("Y-m-d H:i:s");
 
 $updateSql = "
@@ -76,6 +94,9 @@ $updateStmt->bind_param("is", $user_id, $agora);
 $updateStmt->execute();
 $updateStmt->close();
 
+// ----- LISTAGEM DAS MARCAÇÕES DO CLIENTE -----
+// Vai buscar todas as marcações (exceto canceladas), com o nome
+// do barbeiro através de um JOIN, ordenadas por estado e data
 $sql = "
 SELECT 
     m.id,

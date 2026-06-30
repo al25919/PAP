@@ -1,12 +1,19 @@
 <?php
+// ============================================================
+// INDEX.PHP
+// Página principal para utilizadores autenticados.
+// Se não houver sessão ativa, redireciona para a landing page.
+// ============================================================
+
 session_start();
 
-// 🔥 SE NÃO ESTIVER LOGADO → VAI PARA LANDING
+// Utilizador sem sessão ativa → vai para a página pública
 if (!isset($_SESSION['user_id'])) {
     header("Location: landing.php");
     exit;
 }
 
+// Vai buscar o nome do utilizador para o saudação no navbar
 $user_nome = $_SESSION['user_nome'] ?? "";
 ?>
 <!DOCTYPE html>

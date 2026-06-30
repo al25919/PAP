@@ -1,13 +1,21 @@
 <?php
+// ============================================================
+// DASHBOARD_BARBEIRO.PHP
+// Painel de gestão exclusivo para barbeiros.
+// Mostra estatísticas do dia, agenda de marcações e gráfico
+// de receita semanal. Permite concluir/cancelar marcações.
+// ============================================================
+
 session_start();
 include("ligacao.php");
 
-// Proteção login
+// Só pode aceder quem tiver sessão ativa...
 if (!isset($_SESSION['user_id'])) {
     header("Location: login.php");
     exit;
 }
 
+// ...e for do tipo "barbeiro". Clientes são redirecionados.
 if (!isset($_SESSION['user_tipo']) || $_SESSION['user_tipo'] !== 'barbeiro') {
     header("Location: index.php");
     exit;
@@ -17,10 +25,12 @@ $user_nome = $_SESSION['user_nome'] ?? "Barbeiro";
 
 date_default_timezone_set("Europe/Lisbon");
 
+// O dia a visualizar pode ser passado por GET (?data=YYYY-MM-DD)
+// ou por defeito mostra o dia atual
 $diaSelecionado = $_GET['data'] ?? date("Y-m-d");
 
-
-// Atualizar marcações antigas automaticamente
+// ----- ATUALIZAÇÃO AUTOMÁTICA DE MARCAÇÕES PASSADAS -----
+// Marca como "concluído" qualquer marcação pendente cuja hora já passou
 $agora = date("Y-m-d H:i:s");
 
 $updateSql = "
@@ -35,9 +45,9 @@ $updateStmt->bind_param("s",$agora);
 $updateStmt->execute();
 $updateStmt->close();
 
+// ----- ESTATÍSTICAS DO DIA SELECIONADO -----
 
-// ===== ESTATÍSTICAS DIA =====
-
+// Total de marcações do dia (excluindo canceladas)
 $sqlHoje="
 SELECT COUNT(*) as total
 FROM marcacoes
@@ -49,8 +59,7 @@ $resHoje=$conn->query($sqlHoje);
 $rowHoje=$resHoje->fetch_assoc();
 $marcacoesHoje=$rowHoje['total']??0;
 
-
-// Receita dia
+// Receita total prevista para o dia selecionado
 $sqlReceita="
 SELECT SUM(preco) as receita
 FROM marcacoes
@@ -62,9 +71,9 @@ $resReceita=$conn->query($sqlReceita);
 $rowReceita=$resReceita->fetch_assoc();
 $receitaDia=$rowReceita['receita']??0;
 
+// ----- CONTAGEM POR TIPO DE SERVIÇO -----
 
-// ===== SERVIÇOS DO DIA =====
-
+// Número de marcações só de Corte
 $sqlCorte="
 SELECT COUNT(*) as total
 FROM marcacoes
@@ -79,6 +88,7 @@ $rowCorte=$resCorte->fetch_assoc();
 $corte=$rowCorte['total']??0;
 
 
+// Número de marcações só de Barba
 $sqlBarba="
 SELECT COUNT(*) as total
 FROM marcacoes
@@ -92,7 +102,7 @@ $resBarba=$conn->query($sqlBarba);
 $rowBarba=$resBarba->fetch_assoc();
 $barba=$rowBarba['total']??0;
 
-
+// Número de marcações de Corte + Barba combinados
 $sqlCB="
 SELECT COUNT(*) as total
 FROM marcacoes
@@ -106,9 +116,8 @@ $resCB=$conn->query($sqlCB);
 $rowCB=$resCB->fetch_assoc();
 $corteBarba=$rowCB['total']??0;
 
-
-// ===== RECEITA SEMANA =====
-
+// ----- RECEITA DA SEMANA ATUAL -----
+// Usada para o total semanal no dashboard
 $sqlSemana="
 SELECT SUM(preco) as receita
 FROM marcacoes
@@ -120,7 +129,7 @@ $resSemana=$conn->query($sqlSemana);
 $rowSemana=$resSemana->fetch_assoc();
 $receitaSemana=$rowSemana['receita']??0;
 
-
+// Dados para o gráfico de barras: receita por dia desta semana
 $sqlGrafico="
 SELECT DAYNAME(data_hora) as dia, SUM(preco) as total
 FROM marcacoes
@@ -131,6 +140,8 @@ GROUP BY DAYNAME(data_hora)
 
 $resGrafico=$conn->query($sqlGrafico);
 
+// Array com todos os dias da semana inicializados a 0
+// Os dias com marcações serão atualizados pelo loop abaixo
 $dias=[
 "Monday"=>0,
 "Tuesday"=>0,
@@ -144,9 +155,9 @@ while($row=$resGrafico->fetch_assoc()){
 $dias[$row['dia']]=$row['total'];
 }
 
-
-// ===== AGENDA =====
-
+// ----- AGENDA DO DIA -----
+// Lista de todas as marcações do dia selecionado,
+// com o nome do cliente via JOIN na tabela utilizadores
 $sqlAgenda="
 SELECT 
 m.id,

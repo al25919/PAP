@@ -1,4 +1,10 @@
 <?php
+// ============================================================
+// ABOUT.PHP
+// Página pública sobre a barbearia Light's Barber.
+// Acessível tanto por utilizadores autenticados como visitantes.
+// ============================================================
+
 session_start();
 ?>
 

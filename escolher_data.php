@@ -1,16 +1,25 @@
 <?php
+// ============================================================
+// ESCOLHER_DATA.PHP
+// Versão alternativa do passo de escolha de hora (legado).
+// Mostra os horários disponíveis para o barbeiro e dia escolhidos.
+// ============================================================
+
 session_start();
 include("ligacao.php");
 
+// Garante que os passos anteriores foram completados
 if (!isset($_SESSION['user_id'])) { header("Location: login.php"); exit; }
 if (!isset($_SESSION["marcacao_barbeiro_id"])) { header("Location: marcar_corte.php"); exit; }
 if (!isset($_SESSION["marcacao_dia"])) { header("Location: escolher_dia.php"); exit; }
 
 $user_nome = $_SESSION['user_nome'] ?? "Utilizador";
+
+// Vai buscar da sessão os dados já escolhidos nos passos anteriores
 $barbeiro_id = (int)$_SESSION["marcacao_barbeiro_id"];
 $dia = $_SESSION["marcacao_dia"];
 
-// Nome do barbeiro
+// Consulta o nome do barbeiro para mostrar no resumo
 $barbeiro_nome = "Barbeiro";
 $stmt = $conn->prepare("SELECT nome FROM barbeiros WHERE id = ?");
 $stmt->bind_param("i", $barbeiro_id);
@@ -19,7 +28,8 @@ $r = $stmt->get_result();
 if ($r && $r->num_rows > 0) $barbeiro_nome = $r->fetch_assoc()["nome"];
 $stmt->close();
 
-// Buscar horas já ocupadas nesse dia para esse barbeiro (ignorar canceladas)
+// Consulta as horas já ocupadas para este barbeiro neste dia
+// (exclui marcações canceladas — essas horas ficam disponíveis novamente)
 $ocupadas = [];
 $stmt = $conn->prepare("
   SELECT DATE_FORMAT(data_hora, '%H:%i') AS hora

@@ -1,14 +1,23 @@
 <?php
+// ============================================================
+// LOGIN.PHP
+// Autentica o utilizador (cliente ou barbeiro) e cria a sessão
+// ============================================================
+
 session_start();
 include 'ligacao.php';
 
 $erro = "";
 
+// Só processa o login quando o formulário é submetido (POST)
 if ($_SERVER["REQUEST_METHOD"] == "POST") {
 
+    // Vai buscar os dados que o utilizador escreveu no formulário
     $email = $_POST['email'];
     $password = $_POST['password'];
 
+    // Procura na base de dados um utilizador com este email
+    // (prepared statement, evita SQL Injection)
     $sql = "SELECT * FROM utilizadores WHERE email = ?";
     $stmt = $conn->prepare($sql);
     $stmt->bind_param("s", $email);
@@ -16,22 +25,29 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
     $result = $stmt->get_result();
 
     if ($result->num_rows > 0) {
+        // Encontrou um utilizador com esse email
         $user = $result->fetch_assoc();
 
+        // Compara a password introduzida com o hash guardado na BD
+        // (a password nunca é guardada em texto simples)
         if (password_verify($password, $user['password'])) {
 
+            // Login válido -> guarda os dados do utilizador na sessão
+            // para serem usados nas restantes páginas do site
             $_SESSION['user_id'] = $user['id'];
             $_SESSION['user_nome'] = $user['nome'];
-            $_SESSION['user_tipo'] = $user['tipo'];
+            $_SESSION['user_tipo'] = $user['tipo']; // cliente ou barbeiro
 
-            // 🔥 CORREÇÃO: ir para o site principal
+            // Redireciona para a página principal já autenticado
             header("Location: index.php");
             exit;
 
         } else {
+            // Email existe mas a password está errada
             $erro = "Password incorreta!";
         }
     } else {
+        // Não existe nenhum utilizador com este email
         $erro = "Email não existe!";
     }
 }

@@ -1,7 +1,15 @@
 <?php
+// ============================================================
+// ESCOLHER_HORA.PHP
+// Passo 3/4 do fluxo de marcação: o cliente escolhe a hora
+// (lê o barbeiro e o dia escolhidos nos passos anteriores)
+// ============================================================
+
 session_start();
 include("ligacao.php");
 
+// Protege a página: precisa de sessão ativa e dos passos
+// anteriores (barbeiro e dia) já terem sido escolhidos
 if (!isset($_SESSION['user_id'])) { header("Location: login.php"); exit; }
 if (!isset($_SESSION["marcacao_barbeiro_id"])) { header("Location: marcar_corte.php"); exit; }
 if (!isset($_SESSION["marcacao_dia"])) { header("Location: escolher_dia.php"); exit; }
@@ -12,8 +20,8 @@ $dia = $_SESSION["marcacao_dia"];
 
 date_default_timezone_set("Europe/Lisbon");
 
-/* HORÁRIOS */
-
+// ----- GERAÇÃO DOS HORÁRIOS DE FUNCIONAMENTO -----
+// Cria a lista de horários possíveis: das 09:00 às 18:00, de 30 em 30 min
 $horarios = [];
 
 $hora = new DateTime("09:00");
@@ -24,8 +32,9 @@ while ($hora < $fim) {
     $hora->modify("+30 minutes");
 }
 
-/* OCUPADOS */
-
+// ----- HORÁRIOS JÁ OCUPADOS -----
+// Consulta a base de dados para saber que horas já estão marcadas
+// com este barbeiro neste dia (para não mostrar como disponíveis)
 $horariosOcupados = [];
 
 $stmt = $conn->prepare("
@@ -44,18 +53,20 @@ while($row=$res->fetch_assoc()){
 
 $stmt->close();
 
-/* HORA ATUAL */
-
+// Guarda a hora atual, para esconder horários já passados
+// caso o dia escolhido seja hoje
 $agora = new DateTime();
 $horaAtual = $agora->format("H:i");
 
-/* SUBMIT */
-
+// ----- PROCESSAMENTO DA ESCOLHA DA HORA -----
 if($_SERVER["REQUEST_METHOD"]==="POST"){
     $horaEscolhida=$_POST["hora"] ?? "";
 
     if($horaEscolhida!=""){
+        // Guarda a hora escolhida na sessão para o passo final
         $_SESSION["marcacao_hora"]=$horaEscolhida;
+
+        // Avança para o passo 4 (escolha do serviço e confirmação)
         header("Location: conclusao.php");
         exit;
     }

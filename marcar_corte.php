@@ -1,7 +1,13 @@
 <?php
+// ============================================================
+// MARCAR_CORTE.PHP
+// Passo 1/4 do fluxo de marcação: o cliente escolhe o barbeiro
+// ============================================================
+
 session_start();
 include("ligacao.php");
 
+// Só pode aceder a esta página quem tiver sessão ativa
 if (!isset($_SESSION['user_id'])) {
   header("Location: login.php");
   exit;
@@ -9,6 +15,7 @@ if (!isset($_SESSION['user_id'])) {
 
 $user_nome = $_SESSION['user_nome'] ?? "Utilizador";
 
+// Vai buscar todos os barbeiros disponíveis para apresentar na grelha
 $barbeiros = [];
 $res = $conn->query("SELECT id, nome FROM barbeiros ORDER BY id ASC");
 if ($res) {
@@ -17,13 +24,21 @@ if ($res) {
 
 $erro = "";
 if ($_SERVER["REQUEST_METHOD"] === "POST") {
+  // Recebe o id do barbeiro escolhido pelo cliente
   $barbeiro_id = isset($_POST["barbeiro_id"]) ? (int)$_POST["barbeiro_id"] : 0;
 
   if ($barbeiro_id <= 0) {
     $erro = "Escolhe um barbeiro.";
   } else {
+    // Guarda o barbeiro escolhido na sessão, para ser usado
+    // pelos próximos passos do fluxo de marcação
     $_SESSION["marcacao_barbeiro_id"] = $barbeiro_id;
+
+    // Limpa escolhas anteriores (caso o cliente esteja a refazer
+    // a marcação do início, com um barbeiro diferente)
     unset($_SESSION["marcacao_dia"], $_SESSION["marcacao_hora"], $_SESSION["marcacao_tipo"]);
+
+    // Avança para o passo 2 (escolha do dia)
     header("Location: escolher_dia.php");
     exit;
   }
@@ -303,7 +318,7 @@ grid-template-columns:1fr;
 <div class="logo">LIGHT'S BARBER</div>
 
 <div class="nav-links">
-<a href="about.php">About</a>
+<a href="about.php">About Us</a>
 
 <?php if (isset($_SESSION['user_tipo']) && $_SESSION['user_tipo'] === 'barbeiro'): ?>
 <a href="dashboard_barbeiro.php">Dashboard</a>

@@ -1,7 +1,13 @@
 <?php
+// ============================================================
+// EMAIL.PHP
+// Função responsável pelo envio do email de confirmação
+// após uma marcação ser concluída, usando o PHPMailer via SMTP
+// ============================================================
 
 function enviarEmail($para, $nome, $data, $hora, $barbeiro, $servico) {
 
+    // Verifica se o PHPMailer está instalado antes de tentar usá-lo
     if (!file_exists('phpmailer/src/PHPMailer.php')) {
         return;
     }

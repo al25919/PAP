@@ -1,4 +1,11 @@
 <?php
+// ============================================================
+// LANDING.PHP
+// Página inicial pública da Light's Barber.
+// Apresenta os serviços, testemunhos e chamadas para ação.
+// Acessível sem necessidade de login.
+// ============================================================
+?>
 session_start();
 
 // se já estiver logado → entra no site

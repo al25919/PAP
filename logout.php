@@ -1,14 +1,20 @@
 <?php
-// Inicio a sessão
+// ============================================================
+// LOGOUT.PHP
+// Termina a sessão atual do utilizador (cliente ou barbeiro)
+// ============================================================
+
+// Inicia a sessão para poder aceder/destruir as variáveis dela
 session_start();
 
-// Limpo todas as variáveis da sessão
+// Limpa todas as variáveis guardadas na sessão (user_id, user_nome, etc.)
 $_SESSION = array();
 
-// Destruo a sessão
+// Destrói a sessão por completo no servidor
 session_destroy();
 
-// Redireciono para o index com mensagem
+// Redireciona o utilizador para a página inicial com um parâmetro
+// que pode ser usado para mostrar uma mensagem de "sessão terminada"
 header("Location: index.php?logout=success");
 exit;
 ?>

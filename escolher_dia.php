@@ -1,13 +1,24 @@
 <?php
+// ============================================================
+// ESCOLHER_DIA.PHP
+// Passo 2/4 do fluxo de marcação: o cliente escolhe o dia
+// (lê o barbeiro do passo anterior através da sessão)
+// ============================================================
+
 session_start();
 include("ligacao.php");
 
+// Protege a página: precisa de sessão ativa e de já ter
+// escolhido um barbeiro no passo anterior
 if (!isset($_SESSION['user_id'])) { header("Location: login.php"); exit; }
 if (!isset($_SESSION["marcacao_barbeiro_id"])) { header("Location: marcar_corte.php"); exit; }
 
 $user_nome = $_SESSION['user_nome'] ?? "Utilizador";
+
+// Vai buscar o id do barbeiro escolhido no passo 1 (guardado em sessão)
 $barbeiro_id = (int)$_SESSION["marcacao_barbeiro_id"];
 
+// Consulta o nome do barbeiro para mostrar no resumo da página
 $barbeiro_nome = "Barbeiro";
 $stmt = $conn->prepare("SELECT nome FROM barbeiros WHERE id = ?");
 $stmt->bind_param("i", $barbeiro_id);
@@ -16,24 +27,28 @@ $r = $stmt->get_result();
 if ($r && $r->num_rows > 0) $barbeiro_nome = $r->fetch_assoc()["nome"];
 $stmt->close();
 
+// Define o fuso horário de Portugal para os cálculos de data
 date_default_timezone_set("Europe/Lisbon");
 
-/* NOVO SISTEMA DE DIAS */
-
+// ----- GERAÇÃO DOS PRÓXIMOS 30 DIAS DISPONÍVEIS -----
 $dias = [];
 
 $inicio = new DateTime("today");
 $fim = new DateTime("today");
 $fim->modify("+30 days");
 
+// Percorre dia a dia, de hoje até daqui a 30 dias
 for ($d = clone $inicio; $d <= $fim; $d->modify("+1 day")) {
 
+    // Se já passou das 18h de hoje, não faz sentido mostrar "hoje"
+    // como opção (a barbearia já estaria fechada)
     if ($d->format("Y-m-d") == $inicio->format("Y-m-d") && date("H:i") >= "18:00") {
         continue;
     }
 
-    $diaSemanaNum = (int)$d->format("w");
+    $diaSemanaNum = (int)$d->format("w"); // 0 = Domingo, 6 = Sábado
 
+    // Guarda os dados de cada dia para depois apresentar no calendário
     $dias[] = [
         "date"=>$d->format("Y-m-d"),
         "dow"=>$diaSemanaNum,
@@ -42,15 +57,24 @@ for ($d = clone $inicio; $d <= $fim; $d->modify("+1 day")) {
     ];
 }
 
+// Nomes dos dias da semana abreviados, para a interface
 $nomesSemana = ["Dom","Seg","Ter","Qua","Qui","Sex","Sáb"];
 
+// ----- PROCESSAMENTO DA ESCOLHA DO DIA -----
 if ($_SERVER["REQUEST_METHOD"]==="POST"){
     $dia=$_POST["dia"] ?? "";
 
+    // Valida que o dia recebido está no formato correto (AAAA-MM-DD)
     if(preg_match('/^\d{4}-\d{2}-\d{2}$/',$dia)){
+        // Guarda o dia escolhido na sessão para o passo seguinte
         $_SESSION["marcacao_dia"]=$dia;
+
+        // Limpa escolhas anteriores de hora/tipo, caso o utilizador
+        // esteja a refazer a marcação com um dia diferente
         unset($_SESSION["marcacao_hora"]);
         unset($_SESSION["marcacao_tipo"]);
+
+        // Avança para o passo 3 (escolha da hora)
         header("Location: escolher_hora.php");
         exit;
     }
